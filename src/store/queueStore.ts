@@ -58,6 +58,13 @@ const mockAppointments: Appointment[] = [
   { id: 'apt-2', patientId: 'P00001', serviceType: 'Lab Work', dateTime: new Date(Date.now() + 90000000), location: 'Building B', status: 'scheduled' },
 ];
 
+interface AddVisitorData {
+  patientName: string;
+  serviceType: string;
+  priority: Priority;
+  notes?: string;
+}
+
 interface QueueStore {
   // Admin state
   queue: QueueEntry[];
@@ -80,6 +87,7 @@ interface QueueStore {
   leaveQueue: () => void;
   markNotificationRead: (id: string) => void;
   updateStaffStatus: (id: string, status: Staff['status']) => void;
+  addVisitor: (data: AddVisitorData) => QueueEntry;
 }
 
 export const useQueueStore = create<QueueStore>((set, get) => ({
@@ -172,4 +180,26 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
       s.id === id ? { ...s, status } : s
     ),
   })),
+
+  addVisitor: (data) => {
+    const newEntry: QueueEntry = {
+      id: `visitor-${Date.now()}`,
+      queueNumber: generateQueueNumber(),
+      patientName: data.patientName,
+      patientId: `V${String(Date.now()).slice(-5)}`,
+      serviceType: data.serviceType,
+      priority: data.priority,
+      status: 'waiting',
+      checkInTime: new Date(),
+      estimatedWaitMinutes: 15,
+      location: 'Building A, Room 101',
+      notes: data.notes,
+    };
+
+    set((state) => ({
+      queue: [...state.queue, newEntry],
+    }));
+
+    return newEntry;
+  },
 }));
