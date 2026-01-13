@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useQueueStore } from '@/store/queueStore';
-import { Clock, MapPin, Users, Bell, Monitor, Columns, Maximize } from 'lucide-react';
+import { Clock, MapPin, Users, Bell, Monitor, Columns, Maximize, Layers, User, PauseCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Lane, QueueEntry } from '@/types/queue';
 
 type LayoutMode = 'standard' | 'compact' | 'kiosk';
 
 const DisplayScreen = () => {
-  const { queue } = useQueueStore();
+  const { queue, lanes } = useQueueStore();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('standard');
   const [showControls, setShowControls] = useState(true);
@@ -57,6 +58,7 @@ const DisplayScreen = () => {
   const inService = queue.filter(p => p.status === 'in-service');
   const waiting = queue.filter(p => p.status === 'waiting');
   const totalWaiting = queue.filter(p => p.status === 'waiting' || p.status === 'checked-in').length;
+  const openLanes = lanes.filter(l => l.status === 'open').length;
 
   return (
     <div 
@@ -157,19 +159,25 @@ const DisplayScreen = () => {
         <CompactLayout 
           inService={inService} 
           waiting={waiting.slice(0, 5)} 
-          totalWaiting={totalWaiting} 
+          totalWaiting={totalWaiting}
+          lanes={lanes}
+          openLanes={openLanes}
         />
       ) : layoutMode === 'kiosk' ? (
         <KioskLayout 
           inService={inService} 
           waiting={waiting.slice(0, 6)} 
-          totalWaiting={totalWaiting} 
+          totalWaiting={totalWaiting}
+          lanes={lanes}
+          openLanes={openLanes}
         />
       ) : (
         <StandardLayout 
           inService={inService} 
           waiting={waiting.slice(0, 5)} 
-          totalWaiting={totalWaiting} 
+          totalWaiting={totalWaiting}
+          lanes={lanes}
+          openLanes={openLanes}
         />
       )}
 
@@ -179,7 +187,7 @@ const DisplayScreen = () => {
         layoutMode === 'compact' ? "p-3" : "p-4"
       )}>
         <div className="flex items-center justify-between text-slate-400">
-          <p>Please listen for your queue number to be called</p>
+          <p>Please listen for your queue number and proceed to the indicated lane</p>
           <p className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             Live Queue Updates
@@ -190,47 +198,71 @@ const DisplayScreen = () => {
   );
 };
 
-// Standard Layout - Two Column (Original)
+// Standard Layout - Multi-Lane Display
 const StandardLayout = ({ 
   inService, 
   waiting, 
-  totalWaiting 
+  totalWaiting,
+  lanes,
+  openLanes
 }: { 
-  inService: any[]; 
-  waiting: any[]; 
-  totalWaiting: number 
+  inService: QueueEntry[]; 
+  waiting: QueueEntry[]; 
+  totalWaiting: number;
+  lanes: Lane[];
+  openLanes: number;
 }) => (
-  <div className="grid grid-cols-3 gap-8 h-[calc(100vh-12rem)] px-8">
-    {/* Now Serving - Main Section */}
-    <div className="col-span-2 bg-slate-800/50 rounded-3xl p-8 backdrop-blur-sm border border-slate-700/50">
-      <div className="flex items-center gap-3 mb-6">
-        <Bell className="w-8 h-8 text-teal-400" />
-        <h2 className="text-2xl font-display font-semibold text-slate-200">Now Serving</h2>
+  <div className="grid grid-cols-4 gap-6 h-[calc(100vh-12rem)] px-8">
+    {/* Lane Status Grid - Takes 3 columns */}
+    <div className="col-span-3 bg-slate-800/50 rounded-3xl p-6 backdrop-blur-sm border border-slate-700/50 overflow-hidden">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Layers className="w-7 h-7 text-teal-400" />
+          <h2 className="text-2xl font-display font-semibold text-slate-200">Now Serving by Lane</h2>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <span className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+            Open ({openLanes})
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+            Break
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-slate-500"></span>
+            Closed
+          </span>
+        </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-6 h-[calc(100%-4rem)]">
+      <div className="grid grid-cols-3 gap-4 h-[calc(100%-3rem)]">
         <AnimatePresence mode="popLayout">
-          {inService.length > 0 ? (
-            inService.slice(0, 4).map((patient, index) => (
-              <NowServingCard key={patient.id} patient={patient} index={index} size="standard" />
-            ))
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="col-span-2 flex items-center justify-center text-slate-500 text-2xl"
-            >
-              No patients currently being served
-            </motion.div>
-          )}
+          {lanes.map((lane, index) => {
+            const currentPatient = inService.find(p => p.lane === lane.name);
+            return (
+              <LaneCard 
+                key={lane.id} 
+                lane={lane} 
+                patient={currentPatient} 
+                index={index}
+                size="standard"
+              />
+            );
+          })}
         </AnimatePresence>
       </div>
     </div>
 
-    {/* Right Sidebar */}
-    <div className="flex flex-col gap-6">
-      <StatsCard inServiceCount={inService.length} totalWaiting={totalWaiting} />
-      <NextUpList waiting={waiting} />
+    {/* Right Sidebar - Stats + Next Up */}
+    <div className="flex flex-col gap-4">
+      <StatsCard 
+        inServiceCount={inService.length} 
+        totalWaiting={totalWaiting}
+        openLanes={openLanes}
+        totalLanes={lanes.length}
+      />
+      <NextUpList waiting={waiting} size="compact" />
     </div>
   </div>
 );
@@ -239,42 +271,53 @@ const StandardLayout = ({
 const CompactLayout = ({ 
   inService, 
   waiting, 
-  totalWaiting 
+  totalWaiting,
+  lanes,
+  openLanes
 }: { 
-  inService: any[]; 
-  waiting: any[]; 
-  totalWaiting: number 
+  inService: QueueEntry[]; 
+  waiting: QueueEntry[]; 
+  totalWaiting: number;
+  lanes: Lane[];
+  openLanes: number;
 }) => (
   <div className="max-w-2xl mx-auto px-4 pb-20 space-y-4">
     {/* Stats Row */}
-    <div className="grid grid-cols-2 gap-3">
-      <div className="bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700/50">
-        <div className="text-3xl font-display font-bold text-teal-400">{inService.length}</div>
-        <div className="text-slate-400 text-sm">Being Served</div>
+    <div className="grid grid-cols-3 gap-2">
+      <div className="bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700/50">
+        <div className="text-2xl font-display font-bold text-teal-400">{inService.length}</div>
+        <div className="text-slate-400 text-xs">Serving</div>
       </div>
-      <div className="bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700/50">
-        <div className="text-3xl font-display font-bold text-coral">{totalWaiting}</div>
-        <div className="text-slate-400 text-sm">Waiting</div>
+      <div className="bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700/50">
+        <div className="text-2xl font-display font-bold text-coral">{totalWaiting}</div>
+        <div className="text-slate-400 text-xs">Waiting</div>
+      </div>
+      <div className="bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700/50">
+        <div className="text-2xl font-display font-bold text-emerald-400">{openLanes}</div>
+        <div className="text-slate-400 text-xs">Lanes Open</div>
       </div>
     </div>
 
-    {/* Now Serving - Compact */}
+    {/* Active Lanes - Compact */}
     <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50">
       <div className="flex items-center gap-2 mb-3">
-        <Bell className="w-5 h-5 text-teal-400" />
-        <h2 className="text-lg font-display font-semibold text-slate-200">Now Serving</h2>
+        <Layers className="w-5 h-5 text-teal-400" />
+        <h2 className="text-lg font-display font-semibold text-slate-200">Active Lanes</h2>
       </div>
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
-          {inService.length > 0 ? (
-            inService.slice(0, 2).map((patient, index) => (
-              <NowServingCard key={patient.id} patient={patient} index={index} size="compact" />
-            ))
-          ) : (
-            <div className="text-center text-slate-500 py-4 text-sm">
-              No patients currently being served
-            </div>
-          )}
+          {lanes.filter(l => l.status === 'open').slice(0, 4).map((lane, index) => {
+            const currentPatient = inService.find(p => p.lane === lane.name);
+            return (
+              <LaneCard 
+                key={lane.id} 
+                lane={lane} 
+                patient={currentPatient} 
+                index={index}
+                size="compact"
+              />
+            );
+          })}
         </AnimatePresence>
       </div>
     </div>
@@ -307,13 +350,10 @@ const CompactLayout = ({
                   )}>
                     {patient.queueNumber}
                   </span>
-                  <span className="text-slate-200 text-sm truncate max-w-[120px]">
-                    {patient.patientName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-slate-500 text-xs">
-                  <MapPin className="h-3 w-3" />
-                  {patient.location}
+                  <div>
+                    <span className="text-slate-200 text-sm">{patient.patientName}</span>
+                    <div className="text-slate-500 text-xs">{patient.serviceType}</div>
+                  </div>
                 </div>
               </motion.div>
             ))
@@ -328,67 +368,82 @@ const CompactLayout = ({
   </div>
 );
 
-// Kiosk Layout - Fullscreen optimized with large numbers
+// Kiosk Layout - Fullscreen optimized with lane-based display
 const KioskLayout = ({ 
   inService, 
   waiting, 
-  totalWaiting 
+  totalWaiting,
+  lanes,
+  openLanes
 }: { 
-  inService: any[]; 
-  waiting: any[]; 
-  totalWaiting: number 
+  inService: QueueEntry[]; 
+  waiting: QueueEntry[]; 
+  totalWaiting: number;
+  lanes: Lane[];
+  openLanes: number;
 }) => (
-  <div className="h-[calc(100vh-10rem)] px-10 grid grid-cols-5 gap-8">
-    {/* Now Serving - Takes 3 columns with huge numbers */}
-    <div className="col-span-3 bg-slate-800/50 rounded-3xl p-8 border border-slate-700/50 flex flex-col">
-      <div className="flex items-center gap-4 mb-6">
-        <Bell className="w-10 h-10 text-teal-400" />
-        <h2 className="text-3xl font-display font-semibold text-slate-200">Now Serving</h2>
+  <div className="h-[calc(100vh-10rem)] px-8 grid grid-cols-5 gap-6">
+    {/* Lane Grid - Takes 4 columns */}
+    <div className="col-span-4 bg-slate-800/50 rounded-3xl p-6 border border-slate-700/50 flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <Layers className="w-10 h-10 text-teal-400" />
+          <h2 className="text-3xl font-display font-semibold text-slate-200">Now Serving</h2>
+        </div>
+        <div className="flex items-center gap-6 text-lg">
+          <span className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse"></span>
+            {openLanes} Lanes Open
+          </span>
+          <span className="flex items-center gap-2 text-slate-400">
+            <Users className="w-5 h-5" />
+            {totalWaiting} Waiting
+          </span>
+        </div>
       </div>
       
-      <div className="flex-1 grid grid-cols-2 gap-6">
+      <div className="flex-1 grid grid-cols-3 gap-4">
         <AnimatePresence mode="popLayout">
-          {inService.length > 0 ? (
-            inService.slice(0, 4).map((patient, index) => (
-              <NowServingCard key={patient.id} patient={patient} index={index} size="kiosk" />
-            ))
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="col-span-2 flex items-center justify-center text-slate-500 text-3xl"
-            >
-              No patients currently being served
-            </motion.div>
-          )}
+          {lanes.map((lane, index) => {
+            const currentPatient = inService.find(p => p.lane === lane.name);
+            return (
+              <LaneCard 
+                key={lane.id} 
+                lane={lane} 
+                patient={currentPatient} 
+                index={index}
+                size="kiosk"
+              />
+            );
+          })}
         </AnimatePresence>
       </div>
     </div>
 
-    {/* Right Side - Stats + Next Up */}
-    <div className="col-span-2 flex flex-col gap-6">
-      {/* Large Stats */}
-      <div className="bg-slate-800/50 rounded-3xl p-6 border border-slate-700/50">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-slate-700/50 rounded-2xl p-6 text-center">
-            <div className="text-6xl font-display font-bold text-teal-400">{inService.length}</div>
-            <div className="text-slate-400 text-lg mt-2">Being Served</div>
+    {/* Right Side - Next Up */}
+    <div className="flex flex-col gap-4">
+      {/* Quick Stats */}
+      <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+            <div className="text-4xl font-display font-bold text-teal-400">{inService.length}</div>
+            <div className="text-slate-400 text-sm">Serving</div>
           </div>
-          <div className="bg-slate-700/50 rounded-2xl p-6 text-center">
-            <div className="text-6xl font-display font-bold text-coral">{totalWaiting}</div>
-            <div className="text-slate-400 text-lg mt-2">Waiting</div>
+          <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+            <div className="text-4xl font-display font-bold text-coral">{totalWaiting}</div>
+            <div className="text-slate-400 text-sm">Waiting</div>
           </div>
         </div>
       </div>
 
-      {/* Next Up - Large */}
-      <div className="flex-1 bg-slate-800/50 rounded-3xl p-6 border border-slate-700/50 overflow-hidden">
-        <div className="flex items-center gap-3 mb-4">
-          <Clock className="w-8 h-8 text-amber-400" />
-          <h3 className="text-2xl font-display font-semibold text-slate-200">Next Up</h3>
+      {/* Next Up List */}
+      <div className="flex-1 bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50 overflow-hidden">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock className="w-6 h-6 text-amber-400" />
+          <h3 className="text-xl font-display font-semibold text-slate-200">Next Up</h3>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-2">
           <AnimatePresence mode="popLayout">
             {waiting.length > 0 ? (
               waiting.map((patient, index) => (
@@ -399,31 +454,24 @@ const KioskLayout = ({
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.1 }}
                   className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl",
+                    "flex items-center gap-3 p-3 rounded-xl",
                     index === 0 ? "bg-amber-500/20 border border-amber-500/30" : "bg-slate-700/30"
                   )}
                 >
-                  <div className="flex items-center gap-4">
-                    <span className={cn(
-                      "font-mono font-bold text-4xl",
-                      index === 0 ? "text-amber-400" : "text-slate-300"
-                    )}>
-                      {patient.queueNumber}
-                    </span>
-                    <div>
-                      <div className="text-slate-200 text-xl font-medium">{patient.patientName}</div>
-                      <div className="text-slate-500">{patient.serviceType}</div>
-                    </div>
+                  <span className={cn(
+                    "font-mono font-bold text-2xl",
+                    index === 0 ? "text-amber-400" : "text-slate-300"
+                  )}>
+                    {patient.queueNumber}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-slate-200 font-medium truncate">{patient.patientName}</div>
+                    <div className="text-slate-500 text-sm truncate">{patient.serviceType}</div>
                   </div>
-                  {index === 0 && (
-                    <span className="text-amber-400 text-lg font-medium animate-pulse">
-                      Next
-                    </span>
-                  )}
                 </motion.div>
               ))
             ) : (
-              <div className="text-center text-slate-500 py-8 text-xl">
+              <div className="text-center text-slate-500 py-6">
                 No patients waiting
               </div>
             )}
@@ -434,103 +482,214 @@ const KioskLayout = ({
   </div>
 );
 
-// Reusable Now Serving Card
-const NowServingCard = ({ 
+// Lane Card Component
+const LaneCard = ({ 
+  lane, 
   patient, 
-  index, 
-  size 
+  index,
+  size
 }: { 
-  patient: any; 
-  index: number; 
-  size: 'standard' | 'compact' | 'kiosk' 
+  lane: Lane; 
+  patient?: QueueEntry; 
+  index: number;
+  size: 'standard' | 'compact' | 'kiosk';
 }) => {
+  const isOpen = lane.status === 'open';
+  const isBreak = lane.status === 'break';
+  const isClosed = lane.status === 'closed';
+
   const sizeStyles = {
-    standard: "rounded-2xl p-6",
-    compact: "rounded-xl p-4",
-    kiosk: "rounded-3xl p-8"
+    standard: "rounded-2xl p-5",
+    compact: "rounded-xl p-3 flex items-center gap-4",
+    kiosk: "rounded-2xl p-6"
   };
 
   const numberStyles = {
-    standard: "text-6xl",
-    compact: "text-4xl",
-    kiosk: "text-8xl"
+    standard: "text-5xl",
+    compact: "text-3xl",
+    kiosk: "text-6xl"
   };
 
-  const nameStyles = {
-    standard: "text-xl",
+  const laneNameStyles = {
+    standard: "text-lg",
     compact: "text-base",
-    kiosk: "text-2xl"
+    kiosk: "text-xl"
   };
+
+  if (size === 'compact') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 10 }}
+        transition={{ delay: index * 0.05 }}
+        className={cn(
+          "border flex items-center gap-4 p-3 rounded-xl",
+          isOpen && patient && "bg-gradient-to-r from-teal-600/20 to-teal-700/10 border-teal-500/30",
+          isOpen && !patient && "bg-slate-700/30 border-slate-600/30",
+          isBreak && "bg-amber-500/10 border-amber-500/30",
+          isClosed && "bg-slate-800/50 border-slate-700/30"
+        )}
+      >
+        <div className="flex items-center gap-3 min-w-[100px]">
+          <div className={cn(
+            "w-2.5 h-2.5 rounded-full",
+            isOpen && "bg-emerald-500",
+            isBreak && "bg-amber-500",
+            isClosed && "bg-slate-500"
+          )} />
+          <span className="font-semibold text-slate-200">{lane.name}</span>
+        </div>
+        
+        {patient ? (
+          <div className="flex-1 flex items-center gap-3">
+            <span className="font-mono font-bold text-2xl text-teal-400">
+              {patient.queueNumber}
+            </span>
+            <span className="text-slate-300 truncate">{patient.patientName}</span>
+          </div>
+        ) : isOpen ? (
+          <span className="text-slate-500 text-sm">Ready for next patient</span>
+        ) : isBreak ? (
+          <span className="text-amber-400 text-sm flex items-center gap-1">
+            <PauseCircle className="w-4 h-4" />
+            On Break
+          </span>
+        ) : (
+          <span className="text-slate-500 text-sm flex items-center gap-1">
+            <XCircle className="w-4 h-4" />
+            Closed
+          </span>
+        )}
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.3, delay: index * 0.1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ delay: index * 0.05 }}
       className={cn(
-        "bg-gradient-to-br from-teal-600/20 to-teal-700/10 border border-teal-500/30 flex flex-col justify-between",
-        sizeStyles[size]
+        "border flex flex-col",
+        sizeStyles[size],
+        isOpen && patient && "bg-gradient-to-br from-teal-600/20 to-teal-700/10 border-teal-500/30",
+        isOpen && !patient && "bg-slate-700/30 border-slate-600/30",
+        isBreak && "bg-amber-500/10 border-amber-500/30",
+        isClosed && "bg-slate-800/50 border-slate-700/30 opacity-60"
       )}
     >
-      <div>
-        <div className="flex items-center gap-2 mb-2">
+      {/* Lane Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
           <div className={cn(
-            "rounded-full bg-teal-500 animate-pulse",
-            size === 'compact' ? "w-2 h-2" : "w-3 h-3"
+            "w-3 h-3 rounded-full",
+            isOpen && "bg-emerald-500 animate-pulse",
+            isBreak && "bg-amber-500",
+            isClosed && "bg-slate-500"
           )} />
-          <span className={cn(
-            "text-teal-400 font-medium",
-            size === 'compact' ? "text-sm" : "text-base"
-          )}>In Service</span>
+          <span className={cn("font-semibold text-slate-200", laneNameStyles[size])}>
+            {lane.name}
+          </span>
         </div>
-        <div className={cn("font-display font-bold text-white mb-2", numberStyles[size])}>
-          {patient.queueNumber}
-        </div>
-        <div className={cn("text-slate-300 truncate", nameStyles[size])}>
-          {patient.patientName}
-        </div>
+        <span className="text-slate-500 text-sm">{lane.location}</span>
       </div>
-      <div className={cn(
-        "flex items-center gap-2 text-slate-400 mt-4",
-        size === 'compact' && "mt-2"
-      )}>
-        <MapPin className={size === 'compact' ? "w-4 h-4" : "w-5 h-5"} />
-        <span className={size === 'compact' ? "text-sm" : "text-lg"}>{patient.location}</span>
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col justify-center">
+        {patient ? (
+          <>
+            <div className={cn("font-mono font-bold text-teal-400 mb-1", numberStyles[size])}>
+              {patient.queueNumber}
+            </div>
+            <div className={cn(
+              "text-slate-300 truncate",
+              size === 'kiosk' ? "text-xl" : "text-lg"
+            )}>
+              {patient.patientName}
+            </div>
+            <div className="text-slate-500 text-sm mt-1">{patient.serviceType}</div>
+          </>
+        ) : isOpen ? (
+          <div className="text-center">
+            <div className={cn("text-slate-500", size === 'kiosk' ? "text-lg" : "text-base")}>
+              Ready for next patient
+            </div>
+          </div>
+        ) : isBreak ? (
+          <div className="text-center flex flex-col items-center gap-2">
+            <PauseCircle className={cn("text-amber-400", size === 'kiosk' ? "w-12 h-12" : "w-8 h-8")} />
+            <div className={cn("text-amber-400 font-medium", size === 'kiosk' ? "text-xl" : "text-base")}>
+              On Break
+            </div>
+          </div>
+        ) : (
+          <div className="text-center flex flex-col items-center gap-2">
+            <XCircle className={cn("text-slate-500", size === 'kiosk' ? "w-12 h-12" : "w-8 h-8")} />
+            <div className={cn("text-slate-500 font-medium", size === 'kiosk' ? "text-xl" : "text-base")}>
+              Closed
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Staff Info */}
+      {lane.assignedStaff && isOpen && (
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-700/50 text-slate-400 text-sm">
+          <User className="w-4 h-4" />
+          <span className="truncate">{lane.assignedStaff}</span>
+        </div>
+      )}
     </motion.div>
   );
 };
 
 // Stats Card Component
-const StatsCard = ({ inServiceCount, totalWaiting }: { inServiceCount: number; totalWaiting: number }) => (
-  <div className="bg-slate-800/50 rounded-3xl p-6 backdrop-blur-sm border border-slate-700/50">
-    <div className="flex items-center gap-3 mb-4">
-      <Users className="w-6 h-6 text-coral" />
-      <h3 className="text-xl font-display font-semibold text-slate-200">Queue Status</h3>
+const StatsCard = ({ 
+  inServiceCount, 
+  totalWaiting, 
+  openLanes, 
+  totalLanes 
+}: { 
+  inServiceCount: number; 
+  totalWaiting: number;
+  openLanes: number;
+  totalLanes: number;
+}) => (
+  <div className="bg-slate-800/50 rounded-2xl p-4 backdrop-blur-sm border border-slate-700/50">
+    <div className="flex items-center gap-2 mb-3">
+      <Users className="w-5 h-5 text-coral" />
+      <h3 className="text-base font-display font-semibold text-slate-200">Queue Status</h3>
     </div>
-    <div className="grid grid-cols-2 gap-4">
-      <div className="bg-slate-700/50 rounded-xl p-4 text-center">
-        <div className="text-4xl font-display font-bold text-teal-400">{inServiceCount}</div>
-        <div className="text-slate-400 text-sm">Being Served</div>
+    <div className="grid grid-cols-2 gap-2">
+      <div className="bg-slate-700/50 rounded-xl p-3 text-center">
+        <div className="text-2xl font-display font-bold text-teal-400">{inServiceCount}</div>
+        <div className="text-slate-400 text-xs">Serving</div>
       </div>
-      <div className="bg-slate-700/50 rounded-xl p-4 text-center">
-        <div className="text-4xl font-display font-bold text-coral">{totalWaiting}</div>
-        <div className="text-slate-400 text-sm">Waiting</div>
+      <div className="bg-slate-700/50 rounded-xl p-3 text-center">
+        <div className="text-2xl font-display font-bold text-coral">{totalWaiting}</div>
+        <div className="text-slate-400 text-xs">Waiting</div>
+      </div>
+      <div className="col-span-2 bg-slate-700/50 rounded-xl p-3 text-center">
+        <div className="text-2xl font-display font-bold text-emerald-400">
+          {openLanes}<span className="text-lg text-slate-500">/{totalLanes}</span>
+        </div>
+        <div className="text-slate-400 text-xs">Lanes Open</div>
       </div>
     </div>
   </div>
 );
 
 // Next Up List Component
-const NextUpList = ({ waiting }: { waiting: any[] }) => (
-  <div className="bg-slate-800/50 rounded-3xl p-6 backdrop-blur-sm border border-slate-700/50 flex-1">
-    <div className="flex items-center gap-3 mb-4">
-      <Clock className="w-6 h-6 text-amber-400" />
-      <h3 className="text-xl font-display font-semibold text-slate-200">Next Up</h3>
+const NextUpList = ({ waiting, size = 'standard' }: { waiting: QueueEntry[]; size?: 'standard' | 'compact' }) => (
+  <div className="flex-1 bg-slate-800/50 rounded-2xl p-4 backdrop-blur-sm border border-slate-700/50 overflow-hidden">
+    <div className="flex items-center gap-2 mb-3">
+      <Clock className="w-5 h-5 text-amber-400" />
+      <h3 className="text-base font-display font-semibold text-slate-200">Next Up</h3>
     </div>
     
-    <div className="space-y-3">
+    <div className="space-y-2">
       <AnimatePresence mode="popLayout">
         {waiting.length > 0 ? (
           waiting.map((patient, index) => (
@@ -541,31 +700,32 @@ const NextUpList = ({ waiting }: { waiting: any[] }) => (
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
               className={cn(
-                "flex items-center justify-between p-4 rounded-xl",
+                "flex items-center justify-between p-3 rounded-xl",
                 index === 0 ? "bg-amber-500/20 border border-amber-500/30" : "bg-slate-700/30"
               )}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className={cn(
-                  "text-3xl font-display font-bold",
+                  "font-mono font-bold",
+                  size === 'compact' ? "text-xl" : "text-2xl",
                   index === 0 ? "text-amber-400" : "text-slate-300"
                 )}>
                   {patient.queueNumber}
                 </div>
-                <div>
-                  <div className="text-slate-200 font-medium">{patient.patientName}</div>
-                  <div className="text-slate-500 text-sm">{patient.serviceType}</div>
+                <div className="min-w-0">
+                  <div className="text-slate-200 text-sm font-medium truncate">{patient.patientName}</div>
+                  <div className="text-slate-500 text-xs truncate">{patient.serviceType}</div>
                 </div>
               </div>
               {index === 0 && (
-                <span className="text-amber-400 text-sm font-medium animate-pulse">
+                <span className="text-amber-400 text-xs font-medium animate-pulse">
                   Next
                 </span>
               )}
             </motion.div>
           ))
         ) : (
-          <div className="text-center text-slate-500 py-8">
+          <div className="text-center text-slate-500 py-6 text-sm">
             No patients waiting
           </div>
         )}

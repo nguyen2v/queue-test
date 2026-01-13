@@ -14,7 +14,19 @@ export interface QueueEntry {
   estimatedWaitMinutes: number;
   assignedStaff?: string;
   location: string;
+  lane?: string; // Lane/Counter number e.g., "Lane 1", "Counter A"
+  room?: string; // Room number e.g., "Room 101"
   notes?: string;
+}
+
+export interface Lane {
+  id: string;
+  name: string;
+  location: string;
+  status: 'open' | 'closed' | 'break';
+  currentPatient?: string; // patient id
+  assignedStaff?: string;
+  serviceTypes: string[];
 }
 
 export interface ServiceType {

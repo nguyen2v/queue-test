@@ -1,8 +1,17 @@
 import { create } from 'zustand';
-import { QueueEntry, Staff, ServiceType, Notification, Patient, Appointment, QueueStatus, Priority } from '@/types/queue';
+import { QueueEntry, Staff, ServiceType, Notification, Patient, Appointment, QueueStatus, Priority, Lane } from '@/types/queue';
 
 // Mock data generators
 const generateQueueNumber = () => `Q-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+
+const mockLanes: Lane[] = [
+  { id: 'lane-1', name: 'Lane 1', location: 'Building A', status: 'open', assignedStaff: 'Dr. Sarah Chen', serviceTypes: ['General Consultation', 'General Checkup'] },
+  { id: 'lane-2', name: 'Lane 2', location: 'Building A', status: 'open', assignedStaff: 'Dr. Michael Roberts', serviceTypes: ['General Consultation', 'Specialist Consultation'] },
+  { id: 'lane-3', name: 'Lane 3', location: 'Building A', status: 'open', assignedStaff: 'Nurse Emily Davis', serviceTypes: ['Lab Work', 'Vaccination'] },
+  { id: 'lane-4', name: 'Lane 4', location: 'Building B', status: 'open', assignedStaff: 'Dr. James Wilson', serviceTypes: ['Specialist Consultation'] },
+  { id: 'lane-5', name: 'Lane 5', location: 'Building B', status: 'break', assignedStaff: 'Nurse David Kim', serviceTypes: ['Lab Work'] },
+  { id: 'lane-6', name: 'Lane 6', location: 'Building B', status: 'closed', serviceTypes: ['Vaccination'] },
+];
 
 const mockStaff: Staff[] = [
   { id: '1', name: 'Dr. Sarah Chen', role: 'Physician', avatar: '', status: 'available', assignedServices: ['general', 'checkup'], patientsServedToday: 12 },
@@ -22,6 +31,8 @@ const generateMockQueue = (): QueueEntry[] => {
   const names = ['John Smith', 'Maria Garcia', 'David Lee', 'Emma Wilson', 'James Brown', 'Sofia Martinez', 'William Johnson', 'Olivia Davis', 'Alexander Taylor', 'Isabella Anderson', 'Benjamin Thomas', 'Mia Jackson'];
   const priorities: Priority[] = ['normal', 'normal', 'normal', 'high', 'urgent'];
   const statuses: QueueStatus[] = ['checked-in', 'waiting', 'waiting', 'in-service', 'completed'];
+  const lanes = ['Lane 1', 'Lane 2', 'Lane 3', 'Lane 4'];
+  const rooms = ['Room 101', 'Room 102', 'Room 103', 'Room 201'];
   
   return names.map((name, index) => ({
     id: `patient-${index + 1}`,
@@ -34,7 +45,9 @@ const generateMockQueue = (): QueueEntry[] => {
     checkInTime: new Date(Date.now() - Math.random() * 3600000),
     estimatedWaitMinutes: Math.floor(Math.random() * 30) + 5,
     assignedStaff: index % 3 === 0 ? mockStaff[index % mockStaff.length].name : undefined,
-    location: 'Building A, Room 101',
+    location: index % 2 === 0 ? 'Building A' : 'Building B',
+    lane: statuses[Math.min(index, statuses.length - 1)] === 'in-service' ? lanes[index % lanes.length] : undefined,
+    room: rooms[index % rooms.length],
     notes: index === 0 ? 'Patient requested wheelchair assistance' : undefined,
   }));
 };
@@ -64,6 +77,7 @@ interface QueueStore {
   staff: Staff[];
   services: ServiceType[];
   notifications: Notification[];
+  lanes: Lane[];
   selectedPatient: QueueEntry | null;
   
   // Patient state
@@ -80,6 +94,7 @@ interface QueueStore {
   leaveQueue: () => void;
   markNotificationRead: (id: string) => void;
   updateStaffStatus: (id: string, status: Staff['status']) => void;
+  updateLaneStatus: (id: string, status: Lane['status']) => void;
 }
 
 export const useQueueStore = create<QueueStore>((set, get) => ({
@@ -87,6 +102,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   staff: mockStaff,
   services: mockServices,
   notifications: mockNotifications,
+  lanes: mockLanes,
   selectedPatient: null,
   currentPatient: mockPatient,
   appointments: mockAppointments,
@@ -170,6 +186,12 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   updateStaffStatus: (id, status) => set((state) => ({
     staff: state.staff.map((s) =>
       s.id === id ? { ...s, status } : s
+    ),
+  })),
+
+  updateLaneStatus: (id, status) => set((state) => ({
+    lanes: state.lanes.map((l) =>
+      l.id === id ? { ...l, status } : l
     ),
   })),
 }));
