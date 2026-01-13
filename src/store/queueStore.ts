@@ -95,6 +95,8 @@ interface QueueStore {
   markNotificationRead: (id: string) => void;
   updateStaffStatus: (id: string, status: Staff['status']) => void;
   updateLaneStatus: (id: string, status: Lane['status']) => void;
+  assignStaffToService: (serviceId: string, staffIds: string[]) => void;
+  getStaffForService: (serviceId: string) => Staff[];
 }
 
 export const useQueueStore = create<QueueStore>((set, get) => ({
@@ -194,4 +196,34 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
       l.id === id ? { ...l, status } : l
     ),
   })),
+
+  assignStaffToService: (serviceId, staffIds) => set((state) => {
+    const service = state.services.find(s => s.id === serviceId);
+    if (!service) return state;
+
+    // Update staff assignments
+    const updatedStaff = state.staff.map((s) => {
+      const isAssigned = staffIds.includes(s.id);
+      const hasService = s.assignedServices.includes(serviceId);
+      
+      if (isAssigned && !hasService) {
+        return { ...s, assignedServices: [...s.assignedServices, serviceId] };
+      } else if (!isAssigned && hasService) {
+        return { ...s, assignedServices: s.assignedServices.filter(sid => sid !== serviceId) };
+      }
+      return s;
+    });
+
+    // Update service staff count
+    const updatedServices = state.services.map((s) =>
+      s.id === serviceId ? { ...s, staffCount: staffIds.length } : s
+    );
+
+    return { staff: updatedStaff, services: updatedServices };
+  }),
+
+  getStaffForService: (serviceId) => {
+    const { staff } = get();
+    return staff.filter(s => s.assignedServices.includes(serviceId));
+  },
 }));
