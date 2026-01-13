@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import NotFound from "./pages/NotFound";
+import DisplayScreen from "./pages/DisplayScreen";
 
 // Admin
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -34,6 +35,9 @@ const App = () => (
         <Routes>
           {/* Redirect root to admin */}
           <Route path="/" element={<Navigate to="/admin" replace />} />
+
+          {/* Public Display Screen */}
+          <Route path="/display" element={<DisplayScreen />} />
 
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminLayout />}>
