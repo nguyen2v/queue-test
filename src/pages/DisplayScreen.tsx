@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQueueStore } from '@/store/queueStore';
-import { Clock, MapPin, Users, Bell, Monitor, Columns, Maximize, Layers, User, PauseCircle, XCircle } from 'lucide-react';
+import { Clock, MapPin, Users, Bell, Monitor, Columns, Maximize, Layers, User, PauseCircle, XCircle, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -9,11 +10,34 @@ import { Lane, QueueEntry } from '@/types/queue';
 type LayoutMode = 'standard' | 'compact' | 'kiosk';
 
 const DisplayScreen = () => {
+  const [searchParams] = useSearchParams();
   const { queue, lanes } = useQueueStore();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('standard');
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // URL Parameters
+  const locationFilter = searchParams.get('location');
+  const modeParam = searchParams.get('mode') as LayoutMode | null;
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(
+    modeParam && ['standard', 'compact', 'kiosk'].includes(modeParam) ? modeParam : 'standard'
+  );
+
+  // Filter lanes and queue by location
+  const filteredLanes = useMemo(() => {
+    if (!locationFilter) return lanes;
+    return lanes.filter(lane => 
+      lane.location?.toLowerCase().includes(locationFilter.toLowerCase())
+    );
+  }, [lanes, locationFilter]);
+
+  const filteredQueue = useMemo(() => {
+    if (!locationFilter) return queue;
+    const locationLaneNames = filteredLanes.map(l => l.name);
+    return queue.filter(entry => 
+      !entry.lane || locationLaneNames.includes(entry.lane)
+    );
+  }, [queue, filteredLanes, locationFilter]);
 
   // Update time every second
   useEffect(() => {
@@ -55,10 +79,10 @@ const DisplayScreen = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  const inService = queue.filter(p => p.status === 'in-service');
-  const waiting = queue.filter(p => p.status === 'waiting');
-  const totalWaiting = queue.filter(p => p.status === 'waiting' || p.status === 'checked-in').length;
-  const openLanes = lanes.filter(l => l.status === 'open').length;
+  const inService = filteredQueue.filter(p => p.status === 'in-service');
+  const waiting = filteredQueue.filter(p => p.status === 'waiting');
+  const totalWaiting = filteredQueue.filter(p => p.status === 'waiting' || p.status === 'checked-in').length;
+  const openLanes = filteredLanes.filter(l => l.status === 'open').length;
 
   return (
     <div 
@@ -138,7 +162,15 @@ const DisplayScreen = () => {
               "font-display font-bold",
               layoutMode === 'compact' ? "text-2xl" : "text-3xl"
             )}>QueueCare</h1>
-            <p className="text-slate-400">City Medical Center</p>
+            <div className="flex items-center gap-2 text-slate-400">
+              <span>City Medical Center</span>
+              {locationFilter && (
+                <span className="flex items-center gap-1 text-teal-400 bg-teal-400/10 px-2 py-0.5 rounded-full text-sm">
+                  <Building2 className="w-3 h-3" />
+                  {locationFilter}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="text-right">
@@ -160,7 +192,7 @@ const DisplayScreen = () => {
           inService={inService} 
           waiting={waiting.slice(0, 5)} 
           totalWaiting={totalWaiting}
-          lanes={lanes}
+          lanes={filteredLanes}
           openLanes={openLanes}
         />
       ) : layoutMode === 'kiosk' ? (
@@ -168,7 +200,7 @@ const DisplayScreen = () => {
           inService={inService} 
           waiting={waiting.slice(0, 6)} 
           totalWaiting={totalWaiting}
-          lanes={lanes}
+          lanes={filteredLanes}
           openLanes={openLanes}
         />
       ) : (
@@ -176,7 +208,7 @@ const DisplayScreen = () => {
           inService={inService} 
           waiting={waiting.slice(0, 5)} 
           totalWaiting={totalWaiting}
-          lanes={lanes}
+          lanes={filteredLanes}
           openLanes={openLanes}
         />
       )}
