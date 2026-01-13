@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Activity,
+  Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -20,6 +21,7 @@ const navItems = [
   { to: "/admin/services", icon: Grid3X3, label: "Services" },
   { to: "/admin/staff", icon: UserCog, label: "Staff" },
   { to: "/admin/analytics", icon: BarChart3, label: "Analytics" },
+  { to: "/display", icon: Monitor, label: "TV Display", external: true },
   { to: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
