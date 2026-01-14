@@ -190,7 +190,7 @@ const DisplayScreen = () => {
         <div className="flex items-center gap-4">
           <img 
             src={logo} 
-            alt="QueueCare" 
+            alt="Caremate" 
             className={cn(
               "rounded-xl",
               layoutMode === 'compact' ? "w-10 h-10" : "w-12 h-12"
@@ -200,7 +200,7 @@ const DisplayScreen = () => {
             <h1 className={cn(
               "font-display font-bold",
               layoutMode === 'compact' ? "text-2xl" : "text-3xl"
-            )}>QueueCare</h1>
+            )}>Caremate</h1>
             <div className="flex items-center gap-2 text-slate-400">
               <span>City Medical Center</span>
               {locationFilter && (

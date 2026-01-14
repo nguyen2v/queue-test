@@ -36,10 +36,10 @@ export function DashboardHeader() {
       {/* Logo */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
-          <span className="text-white font-heading font-bold text-sm">Q</span>
+          <span className="text-white font-heading font-bold text-sm">C</span>
         </div>
         <span className="font-heading font-bold text-lg text-foreground">
-          QueueCare
+          Caremate
         </span>
       </div>
 

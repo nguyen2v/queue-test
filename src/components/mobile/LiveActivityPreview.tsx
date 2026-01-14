@@ -81,7 +81,7 @@ export function LiveActivityPreview({
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="QueueCare" className="w-8 h-8 rounded-lg" />
+            <img src={logo} alt="Caremate" className="w-8 h-8 rounded-lg" />
             <div>
               <p className="text-white text-sm font-semibold">Queue Status</p>
               <div className="flex items-center gap-1">

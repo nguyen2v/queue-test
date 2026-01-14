@@ -122,8 +122,8 @@ export function MobileV2Home() {
         >
           <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[hsl(221,83%,95%)] to-[hsl(221,83%,90%)] border-0 p-5">
             <div className="flex items-center gap-2 mb-2">
-              <img src={logo} alt="QueueCare" className="w-6 h-6 rounded-md" />
-              <span className="text-[hsl(140,60%,40%)] font-semibold text-sm">QueueCare</span>
+              <img src={logo} alt="Caremate" className="w-6 h-6 rounded-md" />
+              <span className="text-[hsl(140,60%,40%)] font-semibold text-sm">Caremate</span>
             </div>
             <h3 className="text-lg font-bold text-foreground mb-1">
               Khám và điều trị<br />đa khoa

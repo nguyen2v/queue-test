@@ -25,8 +25,8 @@ export function MobileHome() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="QueueCare" className="w-10 h-10 rounded-xl" />
-          <span className="font-heading font-bold text-xl">QueueCare</span>
+          <img src={logo} alt="Caremate" className="w-10 h-10 rounded-xl" />
+          <span className="font-heading font-bold text-xl">Caremate</span>
         </div>
       </div>
 

@@ -38,10 +38,10 @@ export function AdminSidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-        <img src={logo} alt="QueueCare" className="w-9 h-9 rounded-lg flex-shrink-0" />
+        <img src={logo} alt="Caremate" className="w-9 h-9 rounded-lg flex-shrink-0" />
         {!collapsed && (
           <span className="font-heading font-bold text-lg text-sidebar-foreground">
-            QueueCare
+            Caremate
           </span>
         )}
       </div>
