@@ -9,11 +9,11 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Activity,
   Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import logo from "@/assets/logo.png";
 
 const navItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -38,9 +38,7 @@ export function AdminSidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-        <div className="w-9 h-9 rounded-lg gradient-teal flex items-center justify-center flex-shrink-0">
-          <Activity className="w-5 h-5 text-primary-foreground" />
-        </div>
+        <img src={logo} alt="QueueCare" className="w-9 h-9 rounded-lg flex-shrink-0" />
         {!collapsed && (
           <span className="font-heading font-bold text-lg text-sidebar-foreground">
             QueueCare

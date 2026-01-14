@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Clock, Users, ChevronRight } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 interface WatchComplicationProps {
   queueNumber: string;
@@ -116,9 +117,7 @@ export function RectangularComplication({ queueNumber, position, estimatedWait, 
       <div className="bg-black/80 rounded-2xl p-3 w-44 border border-white/10">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
-              <Users className="w-3 h-3 text-primary-foreground" />
-            </div>
+            <img src={logo} alt="QueueCare" className="w-6 h-6 rounded-md" />
             <span className="text-white text-xs font-medium">Queue</span>
           </div>
           <span className="text-primary text-xs font-bold">{queueNumber}</span>
@@ -171,15 +170,13 @@ export function ExtraLargeComplication({ queueNumber, position, estimatedWait, s
     <div className="flex flex-col items-center gap-1">
       <p className="text-[10px] text-muted-foreground">Extra Large / Widget</p>
       <div className="bg-black rounded-[28px] p-4 w-48 border border-white/10 shadow-xl">
-        {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ repeat: Infinity, duration: 2 }}
-              className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center"
             >
-              <Users className="w-4 h-4 text-primary-foreground" />
+              <img src={logo} alt="QueueCare" className="w-8 h-8 rounded-xl" />
             </motion.div>
             <div>
               <p className="text-white text-xs font-semibold">Queue Status</p>
@@ -347,9 +344,7 @@ export function WatchComplicationShowcase() {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">⌚</span>
-          </div>
+          <img src={logo} alt="QueueCare" className="w-8 h-8 rounded-lg" />
           <h1 className="text-white text-2xl font-bold">watchOS Complications</h1>
         </div>
         <p className="text-white/60 text-sm">Queue status at a glance on Apple Watch</p>

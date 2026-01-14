@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
+import logo from "@/assets/logo.png";
 
 export function MobileV2Home() {
   const { currentPatient, appointments, activeQueueEntry, notifications } = useQueueStore();
@@ -121,9 +122,7 @@ export function MobileV2Home() {
         >
           <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[hsl(221,83%,95%)] to-[hsl(221,83%,90%)] border-0 p-5">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 bg-[hsl(140,60%,50%)] rounded-lg flex items-center justify-center">
-                <span className="text-white text-xs font-bold">V</span>
-              </div>
+              <img src={logo} alt="QueueCare" className="w-6 h-6 rounded-md" />
               <span className="text-[hsl(140,60%,40%)] font-semibold text-sm">QueueCare</span>
             </div>
             <h3 className="text-lg font-bold text-foreground mb-1">
