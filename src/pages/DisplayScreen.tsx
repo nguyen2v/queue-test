@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueueStore } from '@/store/queueStore';
-import { Clock, MapPin, Users, Bell, Monitor, Columns, Maximize, Layers, User, PauseCircle, XCircle, Building2 } from 'lucide-react';
+import { Clock, MapPin, Users, Bell, Monitor, Columns, Maximize, Layers, User, PauseCircle, XCircle, Building2, ChevronDown, Focus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Lane, QueueEntry } from '@/types/queue';
 
@@ -15,6 +16,7 @@ const DisplayScreen = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedLaneId, setSelectedLaneId] = useState<string>('all');
 
   // URL Parameters
   const locationFilter = searchParams.get('location');
@@ -99,8 +101,42 @@ const DisplayScreen = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-4 right-4 z-50 flex gap-2"
+            className="absolute top-4 right-4 z-50 flex gap-2 items-center"
           >
+            {/* Lane Filter */}
+            <Select value={selectedLaneId} onValueChange={setSelectedLaneId}>
+              <SelectTrigger className="w-[180px] bg-slate-800/80 border-slate-600 text-white hover:bg-slate-700/80">
+                <SelectValue placeholder="Select Lane" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="all" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4" />
+                    All Lanes
+                  </div>
+                </SelectItem>
+                {filteredLanes.map(lane => (
+                  <SelectItem 
+                    key={lane.id} 
+                    value={lane.id}
+                    className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        lane.status === 'open' && "bg-emerald-500",
+                        lane.status === 'break' && "bg-amber-500",
+                        lane.status === 'closed' && "bg-slate-500"
+                      )} />
+                      {lane.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="h-6 w-px bg-slate-600" />
+
             <Button
               variant="ghost"
               size="sm"
@@ -187,7 +223,14 @@ const DisplayScreen = () => {
       </header>
 
       {/* Layout Content */}
-      {layoutMode === 'compact' ? (
+      {selectedLaneId !== 'all' ? (
+        <FocusedLaneLayout 
+          lane={filteredLanes.find(l => l.id === selectedLaneId)}
+          patient={inService.find(p => p.lane === filteredLanes.find(l => l.id === selectedLaneId)?.name)}
+          waiting={waiting.slice(0, 3)}
+          totalWaiting={totalWaiting}
+        />
+      ) : layoutMode === 'compact' ? (
         <CompactLayout 
           inService={inService} 
           waiting={waiting.slice(0, 5)} 
@@ -513,6 +556,157 @@ const KioskLayout = ({
     </div>
   </div>
 );
+
+// Focused Lane Layout - Single lane, larger display
+const FocusedLaneLayout = ({ 
+  lane, 
+  patient,
+  waiting,
+  totalWaiting
+}: { 
+  lane?: Lane;
+  patient?: QueueEntry;
+  waiting: QueueEntry[];
+  totalWaiting: number;
+}) => {
+  if (!lane) return null;
+
+  const isOpen = lane.status === 'open';
+  const isBreak = lane.status === 'break';
+  const isClosed = lane.status === 'closed';
+
+  return (
+    <div className="h-[calc(100vh-12rem)] px-8 flex gap-6">
+      {/* Main Focused Lane Display */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex-1 bg-slate-800/50 rounded-3xl p-8 border border-slate-700/50 flex flex-col items-center justify-center"
+      >
+        {/* Lane Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className={cn(
+            "w-6 h-6 rounded-full animate-pulse",
+            isOpen && "bg-emerald-500",
+            isBreak && "bg-amber-500",
+            isClosed && "bg-slate-500"
+          )} />
+          <div className="flex items-center gap-3">
+            <Focus className="w-8 h-8 text-teal-400" />
+            <h2 className="text-4xl font-display font-bold text-white">{lane.name}</h2>
+          </div>
+          {lane.location && (
+            <span className="text-slate-400 text-xl ml-4 flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              {lane.location}
+            </span>
+          )}
+        </div>
+
+        {/* Now Serving */}
+        {patient ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <div className="text-slate-400 text-2xl mb-4 uppercase tracking-wider">Now Serving</div>
+            <motion.div 
+              key={patient.queueNumber}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="font-mono font-bold text-[12rem] leading-none text-teal-400 mb-6"
+            >
+              {patient.queueNumber}
+            </motion.div>
+            <div className="text-4xl text-white font-medium mb-3">{patient.patientName}</div>
+            <div className="text-2xl text-slate-400">{patient.serviceType}</div>
+          </motion.div>
+        ) : isOpen ? (
+          <div className="text-center">
+            <div className="text-slate-400 text-2xl mb-4 uppercase tracking-wider">Status</div>
+            <div className="text-6xl text-slate-300 font-medium">Ready</div>
+            <div className="text-2xl text-slate-500 mt-4">Waiting for next patient</div>
+          </div>
+        ) : isBreak ? (
+          <div className="text-center flex flex-col items-center">
+            <PauseCircle className="w-32 h-32 text-amber-400 mb-6" />
+            <div className="text-5xl text-amber-400 font-bold">On Break</div>
+          </div>
+        ) : (
+          <div className="text-center flex flex-col items-center">
+            <XCircle className="w-32 h-32 text-slate-500 mb-6" />
+            <div className="text-5xl text-slate-500 font-bold">Closed</div>
+          </div>
+        )}
+
+        {/* Staff Info */}
+        {lane.assignedStaff && isOpen && (
+          <div className="flex items-center gap-3 mt-8 pt-6 border-t border-slate-700/50 text-slate-400 text-xl">
+            <User className="w-6 h-6" />
+            <span>{lane.assignedStaff}</span>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Sidebar - Next Up */}
+      <div className="w-80 flex flex-col gap-4">
+        {/* Stats */}
+        <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50">
+          <div className="grid grid-cols-1 gap-3">
+            <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+              <div className="text-5xl font-display font-bold text-coral">{totalWaiting}</div>
+              <div className="text-slate-400 text-sm mt-1">Waiting in Queue</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Next Up List */}
+        <div className="flex-1 bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50 overflow-hidden">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-6 h-6 text-amber-400" />
+            <h3 className="text-xl font-display font-semibold text-slate-200">Next Up</h3>
+          </div>
+          
+          <div className="space-y-3">
+            <AnimatePresence mode="popLayout">
+              {waiting.length > 0 ? (
+                waiting.map((waitingPatient, index) => (
+                  <motion.div
+                    key={waitingPatient.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-xl",
+                      index === 0 ? "bg-amber-500/20 border border-amber-500/30" : "bg-slate-700/30"
+                    )}
+                  >
+                    <span className={cn(
+                      "font-mono font-bold text-3xl",
+                      index === 0 ? "text-amber-400" : "text-slate-300"
+                    )}>
+                      {waitingPatient.queueNumber}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-slate-200 font-medium text-lg truncate">{waitingPatient.patientName}</div>
+                      <div className="text-slate-500 text-sm truncate">{waitingPatient.serviceType}</div>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center text-slate-500 py-6">
+                  No patients waiting
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Lane Card Component
 const LaneCard = ({ 
