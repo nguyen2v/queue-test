@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useQueueStore } from "@/store/queueStore";
 import { QueueCard } from "@/components/queue/QueueCard";
 import { PatientDetailPanel } from "@/components/queue/PatientDetailPanel";
+import { AddVisitorDialog } from "@/components/queue/AddVisitorDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { QueueStatus, QueueEntry } from "@/types/queue";
-import { LayoutGrid, List, Search, Filter } from "lucide-react";
+import { LayoutGrid, List, Search, Filter, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ export function QueueManagement() {
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [searchQuery, setSearchQuery] = useState('');
   const [draggedItem, setDraggedItem] = useState<QueueEntry | null>(null);
+  const [isAddVisitorOpen, setIsAddVisitorOpen] = useState(false);
 
   const filteredQueue = queue.filter(
     (entry) =>
@@ -211,6 +213,19 @@ export function QueueManagement() {
                   })}
                 </div>
               )}
+
+              {/* Add Visitor Button - Full screen mode */}
+              {!selectedPatient && (
+                <div className="mt-6">
+                  <Button 
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={() => setIsAddVisitorOpen(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add visitor
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -282,6 +297,19 @@ export function QueueManagement() {
               </Card>
             </div>
           )}
+
+          {/* Add Visitor Button - Fixed at bottom when patient selected */}
+          {selectedPatient && (
+            <div className="shrink-0 pt-4">
+              <Button 
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => setIsAddVisitorOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add visitor
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -304,6 +332,12 @@ export function QueueManagement() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Add Visitor Dialog */}
+      <AddVisitorDialog 
+        open={isAddVisitorOpen} 
+        onOpenChange={setIsAddVisitorOpen} 
+      />
     </div>
   );
 }
