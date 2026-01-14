@@ -141,7 +141,7 @@ export function SettingsPage() {
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
                 <div>
                   <p className="font-medium">Admin User</p>
-                  <p className="text-sm text-muted-foreground">admin@queuecare.com</p>
+                  <p className="text-sm text-muted-foreground">admin@caremate.com</p>
                 </div>
                 <Button variant="outline" size="sm">Edit</Button>
               </div>
