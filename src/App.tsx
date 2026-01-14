@@ -24,6 +24,7 @@ import { MobileQRScanner } from "./pages/mobile/MobileQRScanner";
 import { MobileNotifications } from "./pages/mobile/MobileNotifications";
 import { MobileProfile } from "./pages/mobile/MobileProfile";
 import { LiveActivitiesDemo } from "./pages/mobile/LiveActivitiesDemo";
+import { WatchComplicationsDemo } from "./pages/mobile/WatchComplicationsDemo";
 
 // Mobile V2
 import { MobileV2Layout } from "./components/mobile/v2/MobileV2Layout";
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="notifications" element={<MobileNotifications />} />
             <Route path="profile" element={<MobileProfile />} />
             <Route path="live-activities" element={<LiveActivitiesDemo />} />
+            <Route path="watch-complications" element={<WatchComplicationsDemo />} />
           </Route>
 
           {/* Mobile Patient App Routes V2 */}
