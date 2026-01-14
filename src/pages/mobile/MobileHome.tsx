@@ -1,9 +1,10 @@
 import { useQueueStore } from "@/store/queueStore";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Activity, Smartphone, QrCode, Calendar, MapPin, Clock } from "lucide-react";
+import { Smartphone, QrCode, Calendar, MapPin, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import logo from "@/assets/logo.png";
 
 export function MobileHome() {
   const { currentPatient, appointments, activeQueueEntry } = useQueueStore();
@@ -24,9 +25,7 @@ export function MobileHome() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-teal flex items-center justify-center">
-            <Activity className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={logo} alt="QueueCare" className="w-10 h-10 rounded-xl" />
           <span className="font-heading font-bold text-xl">QueueCare</span>
         </div>
       </div>

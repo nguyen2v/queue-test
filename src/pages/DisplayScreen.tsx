@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Lane, QueueEntry } from '@/types/queue';
+import logo from "@/assets/logo.png";
 
 type LayoutMode = 'standard' | 'compact' | 'kiosk';
 
@@ -187,12 +188,14 @@ const DisplayScreen = () => {
         layoutMode === 'kiosk' && "p-6"
       )}>
         <div className="flex items-center gap-4">
-          <div className={cn(
-            "rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center",
-            layoutMode === 'compact' ? "w-10 h-10" : "w-12 h-12"
-          )}>
-            <span className={cn("font-bold", layoutMode === 'compact' ? "text-xl" : "text-2xl")}>Q</span>
-          </div>
+          <img 
+            src={logo} 
+            alt="QueueCare" 
+            className={cn(
+              "rounded-xl",
+              layoutMode === 'compact' ? "w-10 h-10" : "w-12 h-12"
+            )}
+          />
           <div>
             <h1 className={cn(
               "font-display font-bold",

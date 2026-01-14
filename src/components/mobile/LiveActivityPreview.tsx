@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Clock, Users, MapPin } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 interface LiveActivityPreviewProps {
   queueNumber: string;
@@ -80,9 +81,7 @@ export function LiveActivityPreview({
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Users className="w-4 h-4 text-primary-foreground" />
-            </div>
+            <img src={logo} alt="QueueCare" className="w-8 h-8 rounded-lg" />
             <div>
               <p className="text-white text-sm font-semibold">Queue Status</p>
               <div className="flex items-center gap-1">
