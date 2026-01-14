@@ -15,7 +15,7 @@ import { StaffPage } from "./pages/admin/StaffPage";
 import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { SettingsPage } from "./pages/admin/SettingsPage";
 
-// Mobile
+// Mobile V1
 import { MobileLayout } from "./components/mobile/MobileLayout";
 import { MobileHome } from "./pages/mobile/MobileHome";
 import { MobileQueueStatus } from "./pages/mobile/MobileQueueStatus";
@@ -23,6 +23,15 @@ import { MobileCheckIn } from "./pages/mobile/MobileCheckIn";
 import { MobileQRScanner } from "./pages/mobile/MobileQRScanner";
 import { MobileNotifications } from "./pages/mobile/MobileNotifications";
 import { MobileProfile } from "./pages/mobile/MobileProfile";
+
+// Mobile V2
+import { MobileV2Layout } from "./components/mobile/v2/MobileV2Layout";
+import { MobileV2Home } from "./pages/mobile/v2/MobileV2Home";
+import { MobileV2QueueStatus } from "./pages/mobile/v2/MobileV2QueueStatus";
+import { MobileV2CheckIn } from "./pages/mobile/v2/MobileV2CheckIn";
+import { MobileV2Messages } from "./pages/mobile/v2/MobileV2Messages";
+import { MobileV2Appointments } from "./pages/mobile/v2/MobileV2Appointments";
+import { MobileV2Profile } from "./pages/mobile/v2/MobileV2Profile";
 
 const queryClient = new QueryClient();
 
@@ -49,7 +58,7 @@ const App = () => (
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-          {/* Mobile Patient App Routes */}
+          {/* Mobile Patient App Routes V1 */}
           <Route path="/mobile" element={<MobileLayout />}>
             <Route index element={<MobileHome />} />
             <Route path="queue" element={<MobileQueueStatus />} />
@@ -57,6 +66,16 @@ const App = () => (
             <Route path="scan" element={<MobileQRScanner />} />
             <Route path="notifications" element={<MobileNotifications />} />
             <Route path="profile" element={<MobileProfile />} />
+          </Route>
+
+          {/* Mobile Patient App Routes V2 */}
+          <Route path="/mobile/v2" element={<MobileV2Layout />}>
+            <Route index element={<MobileV2Home />} />
+            <Route path="queue" element={<MobileV2QueueStatus />} />
+            <Route path="checkin" element={<MobileV2CheckIn />} />
+            <Route path="messages" element={<MobileV2Messages />} />
+            <Route path="appointments" element={<MobileV2Appointments />} />
+            <Route path="profile" element={<MobileV2Profile />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
