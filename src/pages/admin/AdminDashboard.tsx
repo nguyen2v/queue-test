@@ -9,6 +9,8 @@ import { VolumeTimeline } from "@/components/dashboard/VolumeTimeline";
 import { StaffCapacityPanel } from "@/components/dashboard/StaffCapacityPanel";
 import { DailyProgressFooter } from "@/components/dashboard/DailyProgressFooter";
 import { FloatingActionButton } from "@/components/dashboard/FloatingActionButton";
+import { WalkInCheckInDialog } from "@/components/dashboard/WalkInCheckInDialog";
+import { AnnouncementDialog } from "@/components/dashboard/AnnouncementDialog";
 import { toast } from "@/hooks/use-toast";
 
 // Mock data for the dashboard
@@ -125,6 +127,9 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const { queue, staff, callNextPatient } = useQueueStore();
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
+  const [announcementDialogOpen, setAnnouncementDialogOpen] = useState(false);
+  const [queuePaused, setQueuePaused] = useState(false);
 
   // Calculate metrics from store
   const waitingCount = queue.filter((p) => p.status === "waiting").length;
@@ -329,9 +334,36 @@ export function AdminDashboard() {
       {/* Floating Action Button */}
       <FloatingActionButton
         onCallNext={handleCallNext}
-        onWalkIn={() => toast({ title: "Walk-in", description: "Opening check-in form..." })}
-        onAnnouncement={() => toast({ title: "Announcement", description: "Opening announcement panel..." })}
-        onPauseQueue={() => toast({ title: "Queue Paused", description: "Queue has been paused." })}
+        onWalkIn={() => setWalkInDialogOpen(true)}
+        onAnnouncement={() => setAnnouncementDialogOpen(true)}
+        onPauseQueue={() => {
+          setQueuePaused(!queuePaused);
+          toast({ 
+            title: queuePaused ? "Queue Resumed" : "Queue Paused", 
+            description: queuePaused ? "Queue is now accepting patients." : "Queue has been temporarily paused." 
+          });
+        }}
+      />
+
+      {/* Walk-in Check-in Dialog */}
+      <WalkInCheckInDialog
+        open={walkInDialogOpen}
+        onOpenChange={setWalkInDialogOpen}
+        onSuccess={(queueNumber) => {
+          toast({
+            title: "Walk-in Added",
+            description: `Patient ${queueNumber} has been added to the queue.`,
+          });
+        }}
+      />
+
+      {/* Announcement Dialog */}
+      <AnnouncementDialog
+        open={announcementDialogOpen}
+        onOpenChange={setAnnouncementDialogOpen}
+        onSend={(announcement) => {
+          console.log("Announcement sent:", announcement);
+        }}
       />
     </div>
   );
