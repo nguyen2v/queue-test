@@ -71,6 +71,15 @@ const mockAppointments: Appointment[] = [
   { id: 'apt-2', patientId: 'P00001', serviceType: 'Lab Work', dateTime: new Date(Date.now() + 90000000), location: 'Building B', status: 'scheduled' },
 ];
 
+interface WalkInData {
+  firstName: string;
+  lastName?: string;
+  phone: string;
+  email?: string;
+  service: string;
+  notes?: string;
+}
+
 interface QueueStore {
   // Admin state
   queue: QueueEntry[];
@@ -91,6 +100,7 @@ interface QueueStore {
   callNextPatient: (serviceType?: string) => void;
   movePatient: (id: string, newStatus: QueueStatus) => void;
   checkInPatient: (appointmentId: string) => QueueEntry;
+  addWalkInPatient: (data: WalkInData) => QueueEntry;
   leaveQueue: () => void;
   markNotificationRead: (id: string) => void;
   updateStaffStatus: (id: string, status: Staff['status']) => void;
@@ -178,6 +188,39 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
     queue: state.queue.filter((entry) => entry.id !== state.activeQueueEntry?.id),
     activeQueueEntry: null,
   })),
+
+  addWalkInPatient: (data) => {
+    const { services } = get();
+    const service = services.find(s => s.id === data.service);
+    const patientName = data.lastName 
+      ? `${data.firstName} ${data.lastName}` 
+      : data.firstName;
+    
+    const newEntry: QueueEntry = {
+      id: `walkin-${Date.now()}`,
+      queueNumber: generateQueueNumber(),
+      patientName,
+      patientId: `W${Date.now()}`,
+      serviceType: service?.name || 'General Consultation',
+      priority: 'normal',
+      status: 'waiting',
+      checkInTime: new Date(),
+      estimatedWaitMinutes: service?.avgServiceTime || 15,
+      location: service?.locations[0] || 'Building A',
+      notes: data.notes,
+    };
+
+    set((state) => ({
+      queue: [...state.queue, newEntry],
+      activeQueueEntry: newEntry,
+      // Update service waiting count
+      services: state.services.map((s) =>
+        s.id === data.service ? { ...s, todayWaiting: s.todayWaiting + 1 } : s
+      ),
+    }));
+
+    return newEntry;
+  },
 
   markNotificationRead: (id) => set((state) => ({
     notifications: state.notifications.map((n) =>

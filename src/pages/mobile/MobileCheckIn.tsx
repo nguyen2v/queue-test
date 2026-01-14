@@ -16,7 +16,7 @@ import {
 import { z } from "zod";
 import { toast } from "sonner";
 
-type CheckInStep = 'select' | 'confirm' | 'success' | 'walkin-form' | 'walkin-confirm';
+type CheckInStep = 'select' | 'confirm' | 'success' | 'walkin-form' | 'walkin-confirm' | 'walkin-success';
 
 // Validation schema for walk-in registration
 const walkInSchema = z.object({
@@ -31,7 +31,7 @@ const walkInSchema = z.object({
 type WalkInFormData = z.infer<typeof walkInSchema>;
 
 export function MobileCheckIn() {
-  const { appointments, checkInPatient, activeQueueEntry, services } = useQueueStore();
+  const { appointments, checkInPatient, activeQueueEntry, services, addWalkInPatient } = useQueueStore();
   const navigate = useNavigate();
   const [step, setStep] = useState<CheckInStep>('select');
   const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null);
@@ -102,13 +102,18 @@ export function MobileCheckIn() {
   };
 
   const handleWalkInSubmit = () => {
-    // In a real app, this would create a queue entry
-    // For now, we'll simulate it with a mock entry
-    const selectedService = services.find(s => s.id === walkInData.service);
-    toast.success("Walk-in registered successfully!");
+    // Add walk-in patient to queue
+    addWalkInPatient({
+      firstName: walkInData.firstName,
+      lastName: walkInData.lastName,
+      phone: walkInData.phone,
+      email: walkInData.email,
+      service: walkInData.service,
+      notes: walkInData.notes,
+    });
     
-    // Navigate to queue status (in real app, would add to queue first)
-    navigate('/mobile');
+    toast.success("You've joined the queue!");
+    setStep('walkin-success');
   };
 
   const selectedApt = appointments.find((a) => a.id === selectedAppointment);
@@ -475,7 +480,7 @@ export function MobileCheckIn() {
           </motion.div>
         )}
 
-        {/* Step 3: Success */}
+        {/* Step 3: Success (for appointments) */}
         {step === 'success' && activeQueueEntry && (
           <motion.div
             key="success"
@@ -525,6 +530,83 @@ export function MobileCheckIn() {
               </div>
               <Button size="lg" className="w-full" onClick={() => navigate('/mobile/queue')}>
                 View Queue Status
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Walk-in Success Screen */}
+        {step === 'walkin-success' && activeQueueEntry && (
+          <motion.div
+            key="walkin-success"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+              className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center"
+            >
+              <Check className="w-10 h-10 text-success" />
+            </motion.div>
+
+            <div>
+              <h2 className="text-2xl font-heading font-bold">You're in the Queue!</h2>
+              <p className="text-muted-foreground mt-2">
+                Your queue number
+              </p>
+            </div>
+
+            {/* Large Queue Number Display */}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+              className="py-4"
+            >
+              <span className="text-5xl font-mono font-bold text-primary">
+                {activeQueueEntry.queueNumber}
+              </span>
+            </motion.div>
+
+            <Card className="p-5 w-full text-left space-y-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Name</span>
+                <span className="font-medium">{activeQueueEntry.patientName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Service</span>
+                <span className="font-medium">{activeQueueEntry.serviceType}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Position</span>
+                <span className="font-bold">{selectedService?.todayWaiting || 1}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Est. Wait</span>
+                <span className="font-bold">~{activeQueueEntry.estimatedWaitMinutes} min</span>
+              </div>
+              <div className="pt-3 border-t border-border/50">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  {activeQueueEntry.location}
+                </div>
+              </div>
+            </Card>
+
+            <div className="space-y-3 w-full pt-4">
+              <div className="p-4 bg-secondary/30 rounded-xl">
+                <p className="text-sm text-muted-foreground">
+                  📱 You'll receive SMS updates about your queue position at <strong>{walkInData.phone}</strong>
+                </p>
+              </div>
+              <Button size="lg" className="w-full" onClick={() => navigate('/mobile/queue')}>
+                View Queue Status
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => navigate('/mobile')}>
+                Back to Home
               </Button>
             </div>
           </motion.div>
