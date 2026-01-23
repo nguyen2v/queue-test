@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -16,6 +18,7 @@ import {
   Stethoscope,
   XCircle,
   ClipboardCheck,
+  ScanLine,
 } from "lucide-react";
 
 type LocationState = {
@@ -61,6 +64,26 @@ export function DoctorPatientDetail() {
   } = useQueueStore();
 
   const entry = useMemo(() => queue.find((q) => q.id === id), [queue, id]);
+
+  const leftList = useMemo(() => {
+    const inScope = queue.filter((q) =>
+      ["clinic-suite", "in-service", "completed", "cancelled", "no-show"].includes(q.status)
+    );
+
+    const groups = {
+      waiting: inScope.filter((q) => q.status === "clinic-suite"),
+      inService: inScope.filter((q) => q.status === "in-service"),
+      completed: inScope.filter((q) => q.status === "completed"),
+      cancelled: inScope.filter((q) => q.status === "cancelled" || q.status === "no-show"),
+    };
+
+    return [
+      { key: "waiting", title: "Waiting", items: groups.waiting },
+      { key: "inService", title: "In Service", items: groups.inService },
+      { key: "completed", title: "Completed", items: groups.completed },
+      { key: "cancelled", title: "Cancelled", items: groups.cancelled },
+    ] as const;
+  }, [queue]);
 
   const [localName, setLocalName] = useState<string>("");
   const [localRoom, setLocalRoom] = useState<string>(activeRoom || "");
@@ -140,6 +163,21 @@ export function DoctorPatientDetail() {
   const inServiceDisabled = isCancelled || entry.status === "completed";
   const cancelDisabled = entry.status === "completed";
 
+  const handleReferRadiology = () => {
+    toast({
+      title: "Referred to Radiology",
+      description: "Patient successfully transferred to Radiology and added to its waiting queue.",
+    });
+  };
+
+  const handleCompleted = () => {
+    updatePatientStatus(entry.id, "completed");
+    toast({
+      title: "Visit completed",
+      description: "Doctor has completed serving this patient and they were moved to join the Billing queue.",
+    });
+  };
+
   const handleSaveDetails = () => {
     updatePatientDetails(entry.id, {
       patientName: localName.trim() || entry.patientName,
@@ -161,86 +199,171 @@ export function DoctorPatientDetail() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => navigate("/admin/doctor")}
-            className="shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-heading font-bold text-foreground truncate">{entry.patientName}</h1>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Badge variant="outline">{statusLabel(entry.status)}</Badge>
-              <span className="text-xs font-mono text-muted-foreground">{entry.queueNumber}</span>
-              {entry.room && <Badge variant="secondary">{entry.room}</Badge>}
-              {entry.callStatus === "calling" && <Badge variant="warning">Calling…</Badge>}
-              {entry.callStatus === "called" && (
-                <Badge variant="success" className="gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Called
-                </Badge>
-              )}
+    <div className="animate-fade-in">
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+        {/* Left patient list */}
+        <aside className="hidden lg:block">
+          <Card className="h-[calc(100vh-8rem)] overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base">Patients</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => navigate("/admin/doctor")}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Board
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[calc(100vh-12rem)]">
+                <div className="p-4 space-y-5">
+                  {leftList.map((group) => (
+                    <section key={group.key} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                          {group.title}
+                        </h2>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          {group.items.length}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {group.items.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => navigate(`/admin/doctor/${p.id}`, { state: { activeRoom } })}
+                            className={cn(
+                              "w-full text-left rounded-lg border border-border px-3 py-2 transition-colors",
+                              "hover:bg-muted/30",
+                              p.id === entry.id && "bg-muted/40"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="text-xs font-mono text-muted-foreground">{p.queueNumber}</div>
+                                <div className="font-medium text-sm text-foreground truncate">{p.patientName}</div>
+                                <div className="text-xs text-muted-foreground truncate">{p.serviceType}</div>
+                              </div>
+                              <div className="shrink-0">
+                                {p.callStatus === "called" && (
+                                  <Badge variant="success" className="gap-1">
+                                    <Check className="w-3.5 h-3.5" />
+                                    Called
+                                  </Badge>
+                                )}
+                                {p.callStatus === "calling" && <Badge variant="warning">Calling</Badge>}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+
+                        {group.items.length === 0 && (
+                          <div className="text-xs text-muted-foreground">No patients</div>
+                        )}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* Main detail */}
+        <div className="space-y-6">
+          <header className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => navigate("/admin/doctor")}
+                className="shrink-0"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-heading font-bold text-foreground truncate">{entry.patientName}</h1>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <Badge variant="outline">{statusLabel(entry.status)}</Badge>
+                  <span className="text-xs font-mono text-muted-foreground">{entry.queueNumber}</span>
+                  {entry.room && <Badge variant="secondary">{entry.room}</Badge>}
+                  {entry.callStatus === "calling" && <Badge variant="warning">Calling…</Badge>}
+                  {entry.callStatus === "called" && (
+                    <Badge variant="success" className="gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Called
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Call: Call -> Calling (15s) -> Called */}
-          <Button
-            onClick={() => startCallingPatient(entry.id, localRoom || entry.room || activeRoom || "Room 101")}
-            disabled={callDisabled || entry.callStatus !== "idle"}
-            className={cn("gap-2", entry.callStatus === "called" && "pointer-events-none")}
-          >
-            {entry.callStatus === "called" ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <Phone className="w-4 h-4" />
-            )}
-            {entry.callStatus === "idle" && "Call"}
-            {entry.callStatus === "calling" && `Calling (${Math.max(0, 15 - callSecondsElapsed)}s)`}
-            {entry.callStatus === "called" && "Called"}
-          </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Call: Call -> Calling (15s) -> Called */}
+              <Button
+                onClick={() => startCallingPatient(entry.id, localRoom || entry.room || activeRoom || "Room 101")}
+                disabled={callDisabled || entry.callStatus !== "idle"}
+                className={cn("gap-2", entry.callStatus === "called" && "pointer-events-none")}
+              >
+                {entry.callStatus === "called" ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Phone className="w-4 h-4" />
+                )}
+                {entry.callStatus === "idle" && "Call"}
+                {entry.callStatus === "calling" && `Calling (${Math.max(0, 15 - callSecondsElapsed)}s)`}
+                {entry.callStatus === "called" && "Called"}
+              </Button>
 
-          {/* In Service */}
-          <Button
-            variant="secondary"
-            onClick={() => markInService(entry.id)}
-            disabled={inServiceDisabled || entry.status === "in-service"}
-            className="gap-2"
-          >
-            <Stethoscope className="w-4 h-4" />
-            In Service
-          </Button>
+              {/* In Service */}
+              <Button
+                variant="secondary"
+                onClick={() => markInService(entry.id)}
+                disabled={inServiceDisabled || entry.status === "in-service"}
+                className="gap-2"
+              >
+                <Stethoscope className="w-4 h-4" />
+                In Service
+              </Button>
 
-          {/* Completed (only meaningful when in-service) */}
-          <Button
-            variant="success"
-            onClick={() => updatePatientStatus(entry.id, "completed")}
-            disabled={entry.status !== "in-service"}
-            className="gap-2"
-          >
-            <ClipboardCheck className="w-4 h-4" />
-            Completed
-          </Button>
+              {/* Completed (only meaningful when in-service) */}
+              <Button
+                variant="success"
+                onClick={handleCompleted}
+                disabled={entry.status !== "in-service"}
+                className="gap-2"
+              >
+                <ClipboardCheck className="w-4 h-4" />
+                Completed
+              </Button>
 
-          {/* Cancel / No show */}
-          <Button
-            variant="destructive"
-            onClick={() => cancelPatient(entry.id)}
-            disabled={cancelDisabled}
-            className="gap-2"
-          >
-            <XCircle className="w-4 h-4" />
-            Cancel
-          </Button>
-        </div>
-      </header>
+              {/* Refer to Radiology */}
+              <Button
+                variant="outline"
+                onClick={handleReferRadiology}
+                disabled={isCancelled || entry.status === "completed"}
+                className="gap-2"
+              >
+                <ScanLine className="w-4 h-4" />
+                Refer to Radiology
+              </Button>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Card className="xl:col-span-2">
+              {/* Cancel / No show */}
+              <Button
+                variant="destructive"
+                onClick={() => cancelPatient(entry.id)}
+                disabled={cancelDisabled}
+                className="gap-2"
+              >
+                <XCircle className="w-4 h-4" />
+                Cancel
+              </Button>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <Card className="xl:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Patient Details</CardTitle>
           </CardHeader>
@@ -273,13 +396,13 @@ export function DoctorPatientDetail() {
               <Button variant="outline" onClick={() => navigate("/admin/doctor")}>Done</Button>
             </div>
           </CardContent>
-        </Card>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Vitals</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Vitals</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bp">Blood pressure</Label>
@@ -321,8 +444,10 @@ export function DoctorPatientDetail() {
                 Vitals indicator shows when height & weight are filled.
               </div>
             </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
