@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 const columns: { status: QueueStatus; label: string; color: string }[] = [
   { status: 'checked-in', label: 'Checked In', color: 'bg-secondary' },
   { status: 'waiting', label: 'Waiting', color: 'bg-warning/10' },
+  { status: 'clinic-suite', label: 'Clinic Suite', color: 'bg-secondary' },
   { status: 'in-service', label: 'In Service', color: 'bg-primary/10' },
   { status: 'completed', label: 'Completed', color: 'bg-success/10' },
 ];
@@ -159,7 +160,7 @@ export function QueueManagement() {
                 </div>
               ) : (
                 // Full Kanban board
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                   {columns.map((column) => {
                     const patients = getColumnPatients(column.status);
                     return (
@@ -271,8 +272,10 @@ export function QueueManagement() {
                                 className={cn(
                                   "px-2 py-1 rounded-full text-xs font-medium",
                                   entry.status === 'waiting' && "bg-warning/10 text-warning",
+                                    entry.status === 'clinic-suite' && "bg-secondary text-secondary-foreground",
                                   entry.status === 'in-service' && "bg-primary/10 text-primary",
-                                  entry.status === 'completed' && "bg-success/10 text-success"
+                                    entry.status === 'completed' && "bg-success/10 text-success",
+                                    (entry.status === 'cancelled' || entry.status === 'no-show') && "bg-muted text-muted-foreground"
                                 )}
                               >
                                 {entry.status}

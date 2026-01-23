@@ -106,10 +106,14 @@ export function PatientDetailPanel({
         return "Checked In";
       case "waiting":
         return "Waiting";
+      case "clinic-suite":
+        return "Clinic Suite";
       case "in-service":
         return "In Service";
       case "completed":
         return "Served";
+      case "cancelled":
+        return "Cancelled";
       case "no-show":
         return "No Show";
       default:

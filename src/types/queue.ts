@@ -1,6 +1,25 @@
 export type Priority = 'urgent' | 'high' | 'normal';
-export type QueueStatus = 'checked-in' | 'waiting' | 'in-service' | 'completed' | 'no-show';
+export type QueueStatus =
+  | 'checked-in'
+  | 'waiting'
+  | 'clinic-suite'
+  | 'in-service'
+  | 'completed'
+  | 'cancelled'
+  | 'no-show';
 export type StaffStatus = 'available' | 'busy' | 'break' | 'offline';
+
+export type CallStatus = 'idle' | 'calling' | 'called';
+
+export interface VitalSigns {
+  bloodPressure?: string; // e.g. "120/80"
+  respiratoryRate?: number; // breaths/min
+  heartRate?: number; // bpm
+  spo2?: number; // percent
+  temperatureC?: number;
+  heightCm?: number;
+  weightKg?: number;
+}
 
 export interface QueueEntry {
   id: string;
@@ -17,6 +36,12 @@ export interface QueueEntry {
   lane?: string; // Lane/Counter number e.g., "Lane 1", "Counter A"
   room?: string; // Room number e.g., "Room 101"
   notes?: string;
+
+  // Doctor view
+  callStatus?: CallStatus;
+  callStartedAt?: number; // epoch ms
+  calledAt?: number; // epoch ms
+  vitals?: VitalSigns;
 }
 
 export interface Lane {

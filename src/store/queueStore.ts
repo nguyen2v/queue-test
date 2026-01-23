@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { QueueEntry, Staff, ServiceType, Notification, Patient, Appointment, QueueStatus, Priority, Lane } from '@/types/queue';
+import { QueueEntry, Staff, ServiceType, Notification, Patient, Appointment, QueueStatus, Priority, Lane, VitalSigns, CallStatus } from '@/types/queue';
 
 // Mock data generators
 const generateQueueNumber = () => `Q-${String(Math.floor(Math.random() * 9000) + 1000)}`;
@@ -30,7 +30,7 @@ const mockServices: ServiceType[] = [
 const generateMockQueue = (): QueueEntry[] => {
   const names = ['John Smith', 'Maria Garcia', 'David Lee', 'Emma Wilson', 'James Brown', 'Sofia Martinez', 'William Johnson', 'Olivia Davis', 'Alexander Taylor', 'Isabella Anderson', 'Benjamin Thomas', 'Mia Jackson'];
   const priorities: Priority[] = ['normal', 'normal', 'normal', 'high', 'urgent'];
-  const statuses: QueueStatus[] = ['checked-in', 'waiting', 'waiting', 'in-service', 'completed'];
+  const statuses: QueueStatus[] = ['checked-in', 'waiting', 'clinic-suite', 'in-service', 'completed'];
   const lanes = ['Lane 1', 'Lane 2', 'Lane 3', 'Lane 4'];
   const rooms = ['Room 101', 'Room 102', 'Room 103', 'Room 201'];
   
@@ -49,6 +49,19 @@ const generateMockQueue = (): QueueEntry[] => {
     lane: statuses[Math.min(index, statuses.length - 1)] === 'in-service' ? lanes[index % lanes.length] : undefined,
     room: rooms[index % rooms.length],
     notes: index === 0 ? 'Patient requested wheelchair assistance' : undefined,
+    callStatus: 'idle' as CallStatus,
+    vitals:
+      index % 4 === 0
+        ? {
+            bloodPressure: '120/80',
+            heartRate: 78,
+            respiratoryRate: 16,
+            spo2: 98,
+            temperatureC: 36.8,
+            heightCm: 170,
+            weightKg: 72,
+          }
+        : undefined,
   }));
 };
 
@@ -107,6 +120,14 @@ interface QueueStore {
   updateLaneStatus: (id: string, status: Lane['status']) => void;
   assignStaffToService: (serviceId: string, staffIds: string[]) => void;
   getStaffForService: (serviceId: string) => Staff[];
+
+  // Doctor actions
+  updatePatientDetails: (id: string, updates: Partial<Pick<QueueEntry, 'patientName' | 'notes' | 'room' | 'lane'>> ) => void;
+  updatePatientVitals: (id: string, vitals: VitalSigns) => void;
+  startCallingPatient: (id: string, room: string) => void;
+  confirmCalledPatient: (id: string) => void;
+  markInService: (id: string) => void;
+  cancelPatient: (id: string) => void;
 }
 
 export const useQueueStore = create<QueueStore>((set, get) => ({
@@ -127,6 +148,74 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
       entry.id === id ? { ...entry, status } : entry
     ),
   })),
+
+  updatePatientDetails: (id, updates) =>
+    set((state) => ({
+      queue: state.queue.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry)),
+    })),
+
+  updatePatientVitals: (id, vitals) =>
+    set((state) => ({
+      queue: state.queue.map((entry) =>
+        entry.id === id ? { ...entry, vitals: { ...(entry.vitals || {}), ...vitals } } : entry
+      ),
+    })),
+
+  startCallingPatient: (id, room) =>
+    set((state) => ({
+      queue: state.queue.map((entry) =>
+        entry.id === id
+          ? {
+              ...entry,
+              room,
+              callStatus: 'calling',
+              callStartedAt: Date.now(),
+              calledAt: undefined,
+            }
+          : entry
+      ),
+    })),
+
+  confirmCalledPatient: (id) =>
+    set((state) => ({
+      queue: state.queue.map((entry) =>
+        entry.id === id
+          ? {
+              ...entry,
+              callStatus: 'called',
+              calledAt: Date.now(),
+            }
+          : entry
+      ),
+    })),
+
+  markInService: (id) =>
+    set((state) => ({
+      queue: state.queue.map((entry) =>
+        entry.id === id
+          ? {
+              ...entry,
+              status: 'in-service',
+              callStatus: entry.callStatus === 'called' ? 'called' : 'idle',
+            }
+          : entry
+      ),
+    })),
+
+  cancelPatient: (id) =>
+    set((state) => ({
+      queue: state.queue.map((entry) =>
+        entry.id === id
+          ? {
+              ...entry,
+              status: 'cancelled',
+              callStatus: 'idle',
+              callStartedAt: undefined,
+              calledAt: undefined,
+            }
+          : entry
+      ),
+    })),
 
   callNextPatient: (serviceType) => {
     const { queue } = get();

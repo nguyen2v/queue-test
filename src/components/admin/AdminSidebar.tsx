@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Monitor,
+  Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import logo from "@/assets/logo.png";
 const navItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/admin/queue", icon: Users, label: "Queue Management" },
+  { to: "/admin/doctor", icon: Stethoscope, label: "Doctor View" },
   { to: "/admin/services", icon: Grid3X3, label: "Services" },
   { to: "/admin/staff", icon: UserCog, label: "Staff" },
   { to: "/admin/analytics", icon: BarChart3, label: "Analytics" },
