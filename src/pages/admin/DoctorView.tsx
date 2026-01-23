@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueueStore } from "@/store/queueStore";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,24 +38,27 @@ export function DoctorView() {
   const completed = queue.filter((q) => q.status === "completed");
   const cancelled = queue.filter((q) => q.status === "cancelled" || q.status === "no-show");
 
-  const Column = ({
-    title,
-    count,
-    items,
-  }: {
-    title: string;
-    count: number;
-    items: typeof queue;
-  }) => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-heading font-semibold text-foreground">{title}</h2>
-        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-          {count}
-        </span>
-      </div>
+  const boardColumns = useMemo(
+    () => [
+      { title: "Waiting", items: clinicSuite, tint: "bg-warning/10" },
+      { title: "In Service", items: inService, tint: "bg-primary/10" },
+      { title: "Completed", items: completed, tint: "bg-success/10" },
+      { title: "Cancelled", items: cancelled, tint: "bg-muted" },
+    ],
+    [clinicSuite, inService, completed, cancelled]
+  );
 
-      <div className="space-y-2">
+  const Column = ({ title, items, tint }: { title: string; items: typeof queue; tint: string }) => (
+    <Card className={cn("border-t-4 border-t-current", tint)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">{title}</CardTitle>
+          <span className="text-sm font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {items.length}
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 min-h-[200px] max-h-[calc(100vh-18rem)] overflow-auto">
         {items.map((entry) => (
           <Card
             key={entry.id}
@@ -68,9 +71,7 @@ export function DoctorView() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-muted-foreground">
-                    {entry.queueNumber}
-                  </span>
+                  <span className="text-xs font-mono text-muted-foreground">{entry.queueNumber}</span>
                   {hasVitals(entry) && (
                     <Badge variant="secondary" className="gap-1">
                       <HeartPulse className="w-3.5 h-3.5" />
@@ -80,14 +81,10 @@ export function DoctorView() {
                 </div>
                 <p className="font-medium text-foreground truncate">{entry.patientName}</p>
                 <p className="text-sm text-muted-foreground truncate">{entry.serviceType}</p>
-                {entry.room && (
-                  <p className="text-xs text-muted-foreground mt-1">{entry.room}</p>
-                )}
+                {entry.room && <p className="text-xs text-muted-foreground mt-1">{entry.room}</p>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {entry.callStatus === "calling" && (
-                  <Badge variant="warning">Calling</Badge>
-                )}
+                {entry.callStatus === "calling" && <Badge variant="warning">Calling</Badge>}
                 {entry.callStatus === "called" && (
                   <Badge variant="success" className="gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -100,12 +97,12 @@ export function DoctorView() {
         ))}
 
         {items.length === 0 && (
-          <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-6 text-center">
+          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
             No patients
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 
   return (
@@ -142,11 +139,10 @@ export function DoctorView() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Column title="In Clinic Suite" count={clinicSuite.length} items={clinicSuite} />
-        <Column title="In Service" count={inService.length} items={inService} />
-        <Column title="Completed" count={completed.length} items={completed} />
-        <Column title="Cancelled / No Show" count={cancelled.length} items={cancelled} />
+      <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {boardColumns.map((col) => (
+          <Column key={col.title} title={col.title} items={col.items} tint={col.tint} />
+        ))}
       </main>
     </div>
   );

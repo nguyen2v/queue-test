@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   CheckCircle2,
+  Check,
   Phone,
   Stethoscope,
   XCircle,
@@ -102,11 +103,19 @@ export function DoctorPatientDetail() {
     return Math.max(0, Math.floor((now - entry.callStartedAt) / 1000));
   }, [entry?.callStartedAt, now]);
 
-  const canConfirmCalled = useMemo(() => {
-    if (!entry) return false;
-    if (entry.callStatus !== "calling") return false;
-    return callSecondsElapsed >= 15;
-  }, [entry, callSecondsElapsed]);
+  // Auto-transition calling -> called after 15s
+  useEffect(() => {
+    if (!entry) return;
+    if (entry.callStatus !== "calling") return;
+    if (!entry.callStartedAt) return;
+
+    const msRemaining = Math.max(0, entry.callStartedAt + 15000 - Date.now());
+    const t = window.setTimeout(() => {
+      confirmCalledPatient(entry.id);
+    }, msRemaining);
+
+    return () => window.clearTimeout(t);
+  }, [entry?.id, entry?.callStatus, entry?.callStartedAt, confirmCalledPatient]);
 
   if (!entry) {
     return (
@@ -179,25 +188,20 @@ export function DoctorPatientDetail() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Call: stage 1 */}
+          {/* Call: Call -> Calling (15s) -> Called */}
           <Button
             onClick={() => startCallingPatient(entry.id, localRoom || entry.room || activeRoom || "Room 101")}
             disabled={callDisabled || entry.callStatus !== "idle"}
             className={cn("gap-2", entry.callStatus === "called" && "pointer-events-none")}
           >
-            <Phone className="w-4 h-4" />
-            Call
-          </Button>
-
-          {/* Call: stage 2 -> 3 (manual confirm after 15s) */}
-          <Button
-            variant="outline"
-            onClick={() => confirmCalledPatient(entry.id)}
-            disabled={!canConfirmCalled}
-            className="gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            {entry.callStatus === "calling" ? `Mark Called (${Math.max(0, 15 - callSecondsElapsed)}s)` : "Mark Called"}
+            {entry.callStatus === "called" ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Phone className="w-4 h-4" />
+            )}
+            {entry.callStatus === "idle" && "Call"}
+            {entry.callStatus === "calling" && `Calling (${Math.max(0, 15 - callSecondsElapsed)}s)`}
+            {entry.callStatus === "called" && "Called"}
           </Button>
 
           {/* In Service */}
