@@ -35,6 +35,7 @@ export function DoctorView() {
 
   const clinicSuite = queue.filter((q) => q.status === "clinic-suite");
   const inService = queue.filter((q) => q.status === "in-service");
+  const completed = queue.filter((q) => q.status === "completed");
   const cancelled = queue.filter((q) => q.status === "cancelled" || q.status === "no-show");
 
   const Column = ({
@@ -141,9 +142,10 @@ export function DoctorView() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <Column title="In Clinic Suite" count={clinicSuite.length} items={clinicSuite} />
         <Column title="In Service" count={inService.length} items={inService} />
+        <Column title="Completed" count={completed.length} items={completed} />
         <Column title="Cancelled / No Show" count={cancelled.length} items={cancelled} />
       </main>
     </div>
