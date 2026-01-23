@@ -10,16 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Check,
-  Phone,
-  Stethoscope,
-  XCircle,
-  ClipboardCheck,
-  ScanLine,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Check, Phone, Stethoscope, XCircle, ClipboardCheck, ScanLine } from "lucide-react";
 
 type LocationState = {
   activeRoom?: string;
@@ -38,7 +29,7 @@ function statusLabel(status: string) {
     case "no-show":
       return "No Show";
     case "waiting":
-      return "Waiting";
+      return "Waiting in Clinic Suite";
     case "checked-in":
       return "Checked In";
     default:
@@ -67,7 +58,7 @@ export function DoctorPatientDetail() {
 
   const leftList = useMemo(() => {
     const inScope = queue.filter((q) =>
-      ["clinic-suite", "in-service", "completed", "cancelled", "no-show"].includes(q.status)
+      ["clinic-suite", "in-service", "completed", "cancelled", "no-show"].includes(q.status),
     );
 
     const groups = {
@@ -144,15 +135,13 @@ export function DoctorPatientDetail() {
     return (
       <div className="space-y-4 animate-fade-in">
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => navigate("/admin/doctor")}> 
+          <Button variant="outline" onClick={() => navigate("/admin/doctor")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
         </div>
         <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            Patient not found.
-          </CardContent>
+          <CardContent className="p-6 text-sm text-muted-foreground">Patient not found.</CardContent>
         </Card>
       </div>
     );
@@ -207,9 +196,7 @@ export function DoctorPatientDetail() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base">Patients</CardTitle>
-                <Button variant="outline" size="sm" onClick={() => navigate("/admin/doctor")}
-                  className="gap-2"
-                >
+                <Button variant="outline" size="sm" onClick={() => navigate("/admin/doctor")} className="gap-2">
                   <ArrowLeft className="w-4 h-4" />
                   Board
                 </Button>
@@ -238,7 +225,7 @@ export function DoctorPatientDetail() {
                             className={cn(
                               "w-full text-left rounded-lg border border-border px-3 py-2 transition-colors",
                               "hover:bg-muted/30",
-                              p.id === entry.id && "bg-muted/40"
+                              p.id === entry.id && "bg-muted/40",
                             )}
                           >
                             <div className="flex items-start justify-between gap-2">
@@ -260,9 +247,7 @@ export function DoctorPatientDetail() {
                           </button>
                         ))}
 
-                        {group.items.length === 0 && (
-                          <div className="text-xs text-muted-foreground">No patients</div>
-                        )}
+                        {group.items.length === 0 && <div className="text-xs text-muted-foreground">No patients</div>}
                       </div>
                     </section>
                   ))}
@@ -276,9 +261,7 @@ export function DoctorPatientDetail() {
         <div className="space-y-6">
           <header className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => navigate("/admin/doctor")}
-                className="shrink-0"
-              >
+              <Button variant="outline" onClick={() => navigate("/admin/doctor")} className="shrink-0">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
@@ -306,11 +289,7 @@ export function DoctorPatientDetail() {
                 disabled={callDisabled || entry.callStatus !== "idle"}
                 className={cn("gap-2", entry.callStatus === "called" && "pointer-events-none")}
               >
-                {entry.callStatus === "called" ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Phone className="w-4 h-4" />
-                )}
+                {entry.callStatus === "called" ? <Check className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
                 {entry.callStatus === "idle" && "Call"}
                 {entry.callStatus === "calling" && `Calling (${Math.max(0, 15 - callSecondsElapsed)}s)`}
                 {entry.callStatus === "called" && "Called"}
@@ -364,38 +343,36 @@ export function DoctorPatientDetail() {
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Patient Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="patientName">Name</Label>
-                <Input
-                  id="patientName"
-                  value={localName}
-                  onChange={(e) => setLocalName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="room">Room</Label>
-                <Input id="room" value={localRoom} onChange={(e) => setLocalRoom(e.target.value)} />
-              </div>
-            </div>
+              <CardHeader>
+                <CardTitle className="text-base">Patient Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="patientName">Name</Label>
+                    <Input id="patientName" value={localName} onChange={(e) => setLocalName(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="room">Room</Label>
+                    <Input id="room" value={localRoom} onChange={(e) => setLocalRoom(e.target.value)} />
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                </div>
 
-            <div className="flex items-center gap-2">
-              <Button onClick={handleSaveDetails} className="gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Save details
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/admin/doctor")}>Done</Button>
-            </div>
-          </CardContent>
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleSaveDetails} className="gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Save details
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate("/admin/doctor")}>
+                    Done
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
 
             <Card>
@@ -403,47 +380,72 @@ export function DoctorPatientDetail() {
                 <CardTitle className="text-base">Vitals</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="bp">Blood pressure</Label>
-                <Input id="bp" value={bloodPressure} onChange={(e) => setBloodPressure(e.target.value)} placeholder="120/80" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rr">Respiratory rate</Label>
-                <Input id="rr" value={respiratoryRate} onChange={(e) => setRespiratoryRate(e.target.value)} placeholder="16" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="hr">Heart rate</Label>
-                <Input id="hr" value={heartRate} onChange={(e) => setHeartRate(e.target.value)} placeholder="78" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="spo2">SpO₂</Label>
-                <Input id="spo2" value={spo2} onChange={(e) => setSpo2(e.target.value)} placeholder="98" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="temp">Body temp (°C)</Label>
-                <Input id="temp" value={temperatureC} onChange={(e) => setTemperatureC(e.target.value)} placeholder="36.8" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="height">Height (cm)</Label>
-                <Input id="height" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="170" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="weight">Weight (kg)</Label>
-                <Input id="weight" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="72" />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bp">Blood pressure</Label>
+                    <Input
+                      id="bp"
+                      value={bloodPressure}
+                      onChange={(e) => setBloodPressure(e.target.value)}
+                      placeholder="120/80"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rr">Respiratory rate</Label>
+                    <Input
+                      id="rr"
+                      value={respiratoryRate}
+                      onChange={(e) => setRespiratoryRate(e.target.value)}
+                      placeholder="16"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hr">Heart rate</Label>
+                    <Input id="hr" value={heartRate} onChange={(e) => setHeartRate(e.target.value)} placeholder="78" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="spo2">SpO₂</Label>
+                    <Input id="spo2" value={spo2} onChange={(e) => setSpo2(e.target.value)} placeholder="98" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="temp">Body temp (°C)</Label>
+                    <Input
+                      id="temp"
+                      value={temperatureC}
+                      onChange={(e) => setTemperatureC(e.target.value)}
+                      placeholder="36.8"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="height">Height (cm)</Label>
+                    <Input
+                      id="height"
+                      value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                      placeholder="170"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      value={weightKg}
+                      onChange={(e) => setWeightKg(e.target.value)}
+                      placeholder="72"
+                    />
+                  </div>
+                </div>
 
-            <Separator />
-            <div className="flex items-center gap-2">
-              <Button onClick={handleSaveVitals} className="gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Save vitals
-              </Button>
-              <div className="text-xs text-muted-foreground">
-                Vitals indicator shows when height & weight are filled.
-              </div>
-            </div>
+                <Separator />
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleSaveVitals} className="gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Save vitals
+                  </Button>
+                  <div className="text-xs text-muted-foreground">
+                    Vitals indicator shows when height & weight are filled.
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
