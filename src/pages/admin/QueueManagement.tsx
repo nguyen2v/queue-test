@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const columns: { status: QueueStatus; label: string; color: string }[] = [
-  { status: 'checked-in', label: 'Checked In', color: 'bg-secondary' },
+  // Checked-in is treated as part of Waiting (no separate column)
   { status: 'waiting', label: 'Waiting', color: 'bg-warning/10' },
   { status: 'clinic-suite', label: 'Clinic Suite', color: 'bg-secondary' },
   { status: 'in-service', label: 'In Service', color: 'bg-primary/10' },
@@ -33,7 +33,10 @@ export function QueueManagement() {
   );
 
   const getColumnPatients = (status: QueueStatus) =>
-    filteredQueue.filter((entry) => entry.status === status);
+    filteredQueue.filter((entry) => {
+      if (status === 'waiting') return entry.status === 'waiting' || entry.status === 'checked-in';
+      return entry.status === status;
+    });
 
   const handleDragStart = (entry: QueueEntry) => {
     setDraggedItem(entry);
@@ -160,7 +163,7 @@ export function QueueManagement() {
                 </div>
               ) : (
                 // Full Kanban board
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {columns.map((column) => {
                     const patients = getColumnPatients(column.status);
                     return (
