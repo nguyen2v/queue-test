@@ -25,10 +25,14 @@ const badgeVariants = cva(
           "border-transparent bg-high-priority/10 text-high-priority",
         waiting:
           "border-transparent bg-warning/10 text-warning",
+        "clinic-suite":
+          "border-transparent bg-secondary text-secondary-foreground",
         "in-service":
           "border-transparent bg-primary/10 text-primary",
         completed:
           "border-transparent bg-success/10 text-success",
+        cancelled:
+          "border-transparent bg-destructive/10 text-destructive",
         "no-show":
           "border-transparent bg-muted text-muted-foreground",
         "checked-in":

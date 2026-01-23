@@ -16,10 +16,14 @@ export function StatusDot({ status, className, animate = true }: StatusDotProps)
         return cn('bg-high-priority', animate && 'animate-pulse');
       case 'waiting':
         return cn('bg-warning', animate && 'animate-pulse');
+      case 'clinic-suite':
+        return 'bg-secondary-foreground';
       case 'in-service':
         return 'bg-primary';
       case 'completed':
         return 'bg-success';
+      case 'cancelled':
+        return 'bg-destructive';
       case 'no-show':
         return 'bg-muted-foreground';
       case 'checked-in':

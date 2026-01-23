@@ -14,6 +14,8 @@ import { ServicesPage } from "./pages/admin/ServicesPage";
 import { StaffPage } from "./pages/admin/StaffPage";
 import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { SettingsPage } from "./pages/admin/SettingsPage";
+import { DoctorView } from "./pages/admin/DoctorView";
+import { DoctorPatientDetail } from "./pages/admin/DoctorPatientDetail";
 
 // Mobile V1
 import { MobileLayout } from "./components/mobile/MobileLayout";
@@ -54,6 +56,8 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="queue" element={<QueueManagement />} />
+            <Route path="doctor" element={<DoctorView />} />
+            <Route path="doctor/:id" element={<DoctorPatientDetail />} />
             <Route path="services" element={<ServicesPage />} />
             <Route path="staff" element={<StaffPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
