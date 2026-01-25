@@ -218,6 +218,20 @@ export function MobileQueueStatus() {
           )}
         </div>
 
+        {/* Test Button for "It's Your Turn" overlay */}
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            className="w-full rounded-xl border-dashed border-primary/50 text-primary"
+            onClick={() => {
+              const { triggerItsYourTurn } = useQueueStore.getState();
+              triggerItsYourTurn("Clinic Suite", "Building A", "Room 305");
+            }}
+          >
+            🧪 Test "It's Your Turn" Overlay
+          </Button>
+        </div>
+
         {/* Leave Queue */}
         {!isInService && (
           <div className="pt-4 pb-8">
