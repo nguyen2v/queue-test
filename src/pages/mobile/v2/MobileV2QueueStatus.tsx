@@ -8,7 +8,7 @@ import { QueueHistoryCard } from "@/components/mobile/queue/QueueHistoryCard";
 import { QueueLocationCard } from "@/components/mobile/queue/QueueLocationCard";
 import { QueuePositionDisplay } from "@/components/mobile/queue/QueuePositionDisplay";
 import { InServiceDisplay } from "@/components/mobile/queue/InServiceDisplay";
-import { ItsYourTurnOverlay } from "@/components/mobile/queue/ItsYourTurnOverlay";
+import { ItsYourTurnScreen } from "@/components/mobile/queue/ItsYourTurnScreen";
 
 export function MobileV2QueueStatus() {
   const { 
@@ -85,17 +85,22 @@ export function MobileV2QueueStatus() {
     yourJourney: "Hành trình của bạn",
   };
 
-  return (
-    <div className="animate-fade-in">
-      {/* It's Your Turn Overlay */}
-      <ItsYourTurnOverlay
-        isVisible={showItsYourTurn}
+  // Show "It's Your Turn" as full screen
+  if (showItsYourTurn) {
+    return (
+      <ItsYourTurnScreen
         destination={itsYourTurnDestination?.name || ''}
         building={itsYourTurnDestination?.building}
         room={itsYourTurnDestination?.room}
+        queueNumber={activeQueueEntry.queueNumber}
         onDismiss={dismissItsYourTurn}
+        onBack={() => navigate('/mobile/v2')}
       />
+    );
+  }
 
+  return (
+    <div className="animate-fade-in">
       {/* Header with gradient */}
       <div 
         className="relative px-5 pt-12 pb-8"
