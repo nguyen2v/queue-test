@@ -1,14 +1,15 @@
 import { useQueueStore } from "@/store/queueStore";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Bell, BellOff, UserX } from "lucide-react";
+import { ArrowLeft, Bell, BellOff, UserX, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { QueueHistoryCard } from "@/components/mobile/queue/QueueHistoryCard";
-import { QueueLocationCard } from "@/components/mobile/queue/QueueLocationCard";
-import { QueuePositionDisplay } from "@/components/mobile/queue/QueuePositionDisplay";
-import { InServiceDisplay } from "@/components/mobile/queue/InServiceDisplay";
 import { ItsYourTurnScreen } from "@/components/mobile/queue/ItsYourTurnScreen";
+import { InServiceDisplay } from "@/components/mobile/queue/InServiceDisplay";
+import { QueueStatusCard } from "@/components/mobile/queue/QueueStatusCard";
+import { QueueTestButtons } from "@/components/mobile/queue/QueueTestButtons";
+import { QUEUE_LOCATIONS } from "@/types/queue";
 
 export function MobileQueueStatus() {
   const { 
@@ -59,40 +60,40 @@ export function MobileQueueStatus() {
   };
 
   const isInService = activeQueueEntry.status === 'in-service';
-  const isInClinicSuite = activeQueueEntry.status === 'clinic-suite';
-  const isWaiting = activeQueueEntry.status === 'waiting' || activeQueueEntry.status === 'checked-in';
+  const currentLocation = activeQueueEntry.currentLocation || 'general-waiting';
+  const locationInfo = QUEUE_LOCATIONS[currentLocation];
+  const isRadiology = currentLocation === 'radiology';
+  const isInClinicSuite = activeQueueEntry.status === 'clinic-suite' || currentLocation === 'clinic-suite';
 
-  // Derive status for location card
-  const locationStatus = isInService ? 'in-service' : isInClinicSuite ? 'clinic-suite' : 'waiting';
+  // Determine current test state
+  const getCurrentTestState = (): 'waiting' | 'your-turn' | 'in-service' | 'radiology' => {
+    if (showItsYourTurn) return 'your-turn';
+    if (isRadiology) return 'radiology';
+    if (isInService) return 'in-service';
+    return 'waiting';
+  };
 
-  // Show "It's Your Turn" as full screen
-  if (showItsYourTurn) {
-    return (
-      <ItsYourTurnScreen
-        destination={itsYourTurnDestination?.name || ''}
-        building={itsYourTurnDestination?.building}
-        room={itsYourTurnDestination?.room}
-        queueNumber={activeQueueEntry.queueNumber}
-        onDismiss={dismissItsYourTurn}
-        onBack={() => navigate('/mobile')}
-      />
-    );
-  }
+  // Determine status card state
+  const getStatusCardState = (): 'waiting' | 'your-turn' | 'in-service' | 'queue' => {
+    if (showItsYourTurn) return 'your-turn';
+    if (isInService) return 'in-service';
+    return 'waiting';
+  };
 
   return (
-    <div className="animate-fade-in">
-      {/* Header with gradient */}
+    <div className="animate-fade-in min-h-screen bg-background">
+      {/* Header */}
       <div 
-        className="relative px-5 pt-12 pb-8"
+        className="relative px-5 pt-12 pb-6"
         style={{
           background: isInService 
-            ? "linear-gradient(180deg, hsl(173, 85%, 31%) 0%, hsl(173, 75%, 38%) 100%)"
-            : isInClinicSuite
-            ? "linear-gradient(180deg, hsl(215, 25%, 27%) 0%, hsl(215, 20%, 35%) 100%)"
-            : "linear-gradient(180deg, hsl(173, 85%, 31%) 0%, hsl(173, 75%, 38%) 100%)"
+            ? "linear-gradient(180deg, hsl(var(--success)) 0%, hsl(var(--success) / 0.8) 100%)"
+            : showItsYourTurn
+            ? "linear-gradient(180deg, hsl(var(--accent)) 0%, hsl(var(--accent) / 0.8) 100%)"
+            : "linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)"
         }}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <button 
             onClick={() => navigate('/mobile')}
             className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
@@ -103,31 +104,66 @@ export function MobileQueueStatus() {
           <div className="w-10" />
         </div>
 
-        {/* In Service - show different header */}
-        {isInService ? (
-          <div className="text-center text-white">
-            <p className="text-white/80 text-sm mb-2">Your Queue Number</p>
-            <p className="text-3xl font-bold font-mono">{activeQueueEntry.queueNumber}</p>
+        {/* Position Display */}
+        <div className="text-center text-white">
+          <p className="text-white/80 text-sm mb-2">Your position</p>
+          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm mx-auto flex items-center justify-center mb-3">
+            <span className="text-4xl font-bold">{isInService ? '—' : position}</span>
           </div>
-        ) : (
-          /* Position Display for waiting states */
-          <QueuePositionDisplay
-            queueNumber={activeQueueEntry.queueNumber}
-            position={position}
-            estimatedWait={estimatedWait}
-          />
-        )}
+          <p className="text-white/80 text-sm">in line</p>
+          
+          {!isInService && (
+            <>
+              <p className="text-white/80 text-sm mt-4">Estimated Wait</p>
+              <p className="text-2xl font-bold">~{estimatedWait} minutes</p>
+            </>
+          )}
+
+          {/* Current Location Badge */}
+          <div className="flex items-center justify-center gap-2 mt-4 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mx-auto w-fit">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-medium">{locationInfo?.name || 'General Waiting Room'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Queue Number Card */}
+      <div className="px-5 -mt-4">
+        <Card className="p-4 rounded-2xl shadow-lg text-center">
+          <p className="text-xs text-muted-foreground mb-1">Your Queue Number</p>
+          <p className="text-3xl font-bold font-mono text-primary">
+            {activeQueueEntry.queueNumber}
+          </p>
+        </Card>
       </div>
 
       {/* Content */}
-      <div className="px-5 -mt-4 space-y-4">
-        {/* Queue History */}
-        {activeQueueEntry.queueHistory && activeQueueEntry.queueHistory.length > 0 && (
-          <QueueHistoryCard history={activeQueueEntry.queueHistory} />
+      <div className="px-5 pt-4 space-y-4 pb-8">
+        {/* Floating Status Card */}
+        <QueueStatusCard
+          currentLocation={currentLocation}
+          status={getStatusCardState()}
+          position={position}
+          estimatedWait={estimatedWait}
+          queueNumber={activeQueueEntry.queueNumber}
+          building={activeQueueEntry.building}
+          room={activeQueueEntry.room}
+          serviceName={activeQueueEntry.serviceType}
+        />
+
+        {/* It's Your Turn - Inline (non-blocking) */}
+        {showItsYourTurn && (
+          <ItsYourTurnScreen
+            destination={itsYourTurnDestination?.name || ''}
+            building={itsYourTurnDestination?.building}
+            room={itsYourTurnDestination?.room}
+            queueNumber={activeQueueEntry.queueNumber}
+            onDismiss={dismissItsYourTurn}
+          />
         )}
 
         {/* In Service Display */}
-        {isInService && (
+        {isInService && !showItsYourTurn && (
           <InServiceDisplay
             serviceName={activeQueueEntry.serviceType}
             building={activeQueueEntry.building}
@@ -136,36 +172,31 @@ export function MobileQueueStatus() {
           />
         )}
 
-        {/* Location Card for waiting/clinic-suite */}
-        {!isInService && (
-          <QueueLocationCard
-            serviceName={activeQueueEntry.serviceType}
-            location={activeQueueEntry.location}
-            building={activeQueueEntry.building}
-            room={activeQueueEntry.room}
-            status={locationStatus}
-          />
+        {/* Queue History */}
+        {activeQueueEntry.queueHistory && activeQueueEntry.queueHistory.length > 0 && (
+          <QueueHistoryCard history={activeQueueEntry.queueHistory} />
         )}
 
-        {/* Progress for waiting states */}
-        {!isInService && (
-          <Card className="p-4 rounded-2xl shadow-sm">
-            <p className="text-sm text-muted-foreground mb-3">Queue Progress</p>
-            <div className="flex items-center justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((step) => (
-                <div
-                  key={step}
-                  className={`w-4 h-4 rounded-full transition-colors ${
-                    step <= 5 - position + 1 ? 'bg-primary' : 'bg-muted'
-                  }`}
-                />
-              ))}
+        {/* Location Details Card */}
+        <Card className="p-4 rounded-2xl shadow-sm">
+          <p className="text-sm font-medium text-foreground mb-3">Current Location</p>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <MapPin className="w-5 h-5 text-primary" />
             </div>
-            <p className="text-center text-sm text-muted-foreground mt-3">
-              {position <= 2 ? "Almost there!" : "You're getting closer!"}
-            </p>
-          </Card>
-        )}
+            <div>
+              <p className="font-semibold text-foreground">{locationInfo?.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {activeQueueEntry.building && activeQueueEntry.building}
+                {activeQueueEntry.building && activeQueueEntry.room && ", "}
+                {activeQueueEntry.room}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Service: {activeQueueEntry.serviceType}
+              </p>
+            </div>
+          </div>
+        </Card>
 
         {/* Action Cards */}
         <div className="space-y-3">
@@ -223,23 +254,12 @@ export function MobileQueueStatus() {
           )}
         </div>
 
-        {/* Test Button for "It's Your Turn" overlay */}
-        <div className="pt-2">
-          <Button
-            variant="outline"
-            className="w-full rounded-xl border-dashed border-primary/50 text-primary"
-            onClick={() => {
-              const { triggerItsYourTurn } = useQueueStore.getState();
-              triggerItsYourTurn("Clinic Suite", "Building A", "Room 305");
-            }}
-          >
-            🧪 Test "It's Your Turn" Overlay
-          </Button>
-        </div>
+        {/* Test Buttons */}
+        <QueueTestButtons currentState={getCurrentTestState()} />
 
         {/* Leave Queue */}
         {!isInService && (
-          <div className="pt-4 pb-8">
+          <div className="pt-4">
             <Button
               variant="ghost"
               className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
