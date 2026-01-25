@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Bell, ArrowRight, MapPin, ArrowLeft } from "lucide-react";
+import { Bell, ArrowRight, MapPin, Building2, DoorOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface ItsYourTurnScreenProps {
   destination: string;
@@ -8,7 +9,6 @@ interface ItsYourTurnScreenProps {
   building?: string;
   queueNumber?: string;
   onDismiss: () => void;
-  onBack?: () => void;
 }
 
 export function ItsYourTurnScreen({
@@ -17,40 +17,24 @@ export function ItsYourTurnScreen({
   building,
   queueNumber,
   onDismiss,
-  onBack,
 }: ItsYourTurnScreenProps) {
   return (
-    <div className="min-h-screen animate-fade-in">
-      {/* Header with coral gradient */}
-      <div 
-        className="relative px-5 pt-12 pb-16"
-        style={{
-          background: "linear-gradient(180deg, hsl(24, 95%, 53%) 0%, hsl(24, 90%, 58%) 100%)"
-        }}
-      >
-        <div className="flex items-center justify-between mb-8">
-          {onBack && (
-            <button 
-              onClick={onBack}
-              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-            >
-              <ArrowLeft className="w-5 h-5 text-white" />
-            </button>
-          )}
-          {!onBack && <div className="w-10" />}
-          <h1 className="text-white font-semibold">Queue Status</h1>
-          <div className="w-10" />
-        </div>
-
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4"
+    >
+      {/* Main notification card */}
+      <Card className="p-6 rounded-2xl border-2 border-accent/30 bg-accent/5 shadow-lg">
         {/* Animated bell icon */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4">
           <motion.div
             initial={{ rotate: -15 }}
             animate={{ rotate: [15, -15, 15, -15, 0] }}
             transition={{ duration: 0.6, delay: 0.2, repeat: Infinity, repeatDelay: 3 }}
-            className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+            className="w-16 h-16 rounded-full bg-accent flex items-center justify-center shadow-lg"
           >
-            <Bell className="w-10 h-10 text-white" />
+            <Bell className="w-8 h-8 text-accent-foreground" />
           </motion.div>
         </div>
 
@@ -59,76 +43,72 @@ export function ItsYourTurnScreen({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-center"
+          className="text-center mb-4"
         >
-          <h2 className="text-3xl font-heading font-bold text-white mb-2">
+          <h2 className="text-2xl font-heading font-bold text-foreground mb-1">
             It's Your Turn!
           </h2>
-          <p className="text-white/80">
+          <p className="text-muted-foreground text-sm">
             Please proceed to your destination
           </p>
         </motion.div>
-      </div>
 
-      {/* Content */}
-      <div className="px-5 -mt-6 space-y-4">
-        {/* Queue number card */}
+        {/* Queue number */}
         {queueNumber && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-card rounded-2xl p-4 shadow-sm border text-center"
-          >
+          <div className="text-center mb-4 py-3 bg-accent/10 rounded-xl">
             <p className="text-xs text-muted-foreground mb-1">Your Queue Number</p>
-            <p className="text-3xl font-bold font-mono text-primary">
+            <p className="text-2xl font-bold font-mono text-accent">
               {queueNumber}
             </p>
-          </motion.div>
+          </div>
         )}
 
         {/* Destination info */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-card rounded-2xl p-5 shadow-sm border"
-        >
-          <p className="text-sm text-muted-foreground mb-3">Go to</p>
+        <div className="bg-card rounded-xl p-4 border">
+          <p className="text-xs text-muted-foreground mb-2">Go to</p>
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <MapPin className="w-6 h-6 text-primary" />
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <MapPin className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="font-semibold text-lg text-foreground">{destination}</p>
+              <p className="font-semibold text-foreground">{destination}</p>
               {(building || room) && (
-                <p className="text-muted-foreground">
-                  {building && `${building}`}
-                  {building && room && ", "}
-                  {room}
-                </p>
+                <div className="flex flex-col gap-0.5 mt-1">
+                  {building && (
+                    <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>{building}</span>
+                    </div>
+                  )}
+                  {room && (
+                    <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                      <DoorOpen className="w-3.5 h-3.5" />
+                      <span>{room}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* CTA Button */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="pt-4"
+          transition={{ delay: 0.3 }}
+          className="mt-4"
         >
           <Button
             size="lg"
-            className="w-full rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-14"
+            className="w-full rounded-xl bg-accent hover:bg-accent/90 text-accent-foreground font-semibold h-12"
             onClick={onDismiss}
           >
             I'm on my way
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </motion.div>
-      </div>
-    </div>
+      </Card>
+    </motion.div>
   );
 }
