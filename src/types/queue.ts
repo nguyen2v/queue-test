@@ -11,34 +11,6 @@ export type StaffStatus = 'available' | 'busy' | 'break' | 'offline';
 
 export type CallStatus = 'idle' | 'calling' | 'called';
 
-// Multi-location queue support
-export type QueueLocation = 
-  | 'general-waiting'
-  | 'clinic-suite'
-  | 'radiology'
-  | 'laboratory'
-  | 'billing'
-  | 'pharmacy';
-
-export interface QueueLocationInfo {
-  id: QueueLocation;
-  name: string;
-  building?: string;
-  room?: string;
-  orderNumber?: number; // Dynamic order number per location
-  enteredAt?: Date;
-}
-
-export interface QueueHistoryEntry {
-  location: QueueLocation;
-  locationName: string;
-  status: 'completed' | 'current' | 'upcoming';
-  enteredAt?: Date;
-  completedAt?: Date;
-  room?: string;
-  building?: string;
-}
-
 export interface VitalSigns {
   bloodPressure?: string; // e.g. "120/80"
   respiratoryRate?: number; // breaths/min
@@ -63,7 +35,6 @@ export interface QueueEntry {
   location: string;
   lane?: string; // Lane/Counter number e.g., "Lane 1", "Counter A"
   room?: string; // Room number e.g., "Room 101"
-  building?: string; // Building e.g., "Building A"
   notes?: string;
 
   // Doctor view
@@ -71,12 +42,6 @@ export interface QueueEntry {
   callStartedAt?: number; // epoch ms
   calledAt?: number; // epoch ms
   vitals?: VitalSigns;
-
-  // Multi-location queue tracking
-  currentLocation?: QueueLocation;
-  currentLocationInfo?: QueueLocationInfo;
-  queueHistory?: QueueHistoryEntry[];
-  orderNumberInLocation?: number; // Dynamic order number in current location
 }
 
 export interface Lane {
@@ -138,13 +103,3 @@ export interface Appointment {
   doctorName?: string;
   status: 'scheduled' | 'checked-in' | 'completed' | 'cancelled';
 }
-
-// Location metadata for display
-export const QUEUE_LOCATIONS: Record<QueueLocation, { name: string; icon: string }> = {
-  'general-waiting': { name: 'General Waiting Room', icon: 'users' },
-  'clinic-suite': { name: 'Clinic Suite', icon: 'stethoscope' },
-  'radiology': { name: 'Radiology', icon: 'scan' },
-  'laboratory': { name: 'Laboratory', icon: 'flask-conical' },
-  'billing': { name: 'Billing', icon: 'receipt' },
-  'pharmacy': { name: 'Pharmacy', icon: 'pill' },
-};

@@ -52,8 +52,6 @@ export function DoctorPatientDetail() {
     markInService,
     cancelPatient,
     updatePatientStatus,
-    movePatientToLocation,
-    triggerItsYourTurn,
   } = useQueueStore();
 
   const entry = useMemo(() => queue.find((q) => q.id === id), [queue, id]);
@@ -155,10 +153,6 @@ export function DoctorPatientDetail() {
   const cancelDisabled = entry.status === "completed";
 
   const handleReferRadiology = () => {
-    // Move patient to radiology queue
-    movePatientToLocation(entry.id, 'radiology', entry.building, undefined);
-    updatePatientStatus(entry.id, 'waiting');
-    triggerItsYourTurn('Radiology', entry.building, undefined);
     toast({
       title: "Referred to Radiology",
       description: "Patient successfully transferred to Radiology and added to its waiting queue.",
@@ -166,31 +160,11 @@ export function DoctorPatientDetail() {
   };
 
   const handleCompleted = () => {
-    // Move patient to billing queue
-    movePatientToLocation(entry.id, 'billing', entry.building, undefined);
     updatePatientStatus(entry.id, "completed");
-    triggerItsYourTurn('Billing', entry.building, undefined);
     toast({
       title: "Visit completed",
       description: "Doctor has completed serving this patient and they were moved to join the Billing queue.",
     });
-  };
-
-  const handleStartCalling = () => {
-    const room = localRoom || entry.room || activeRoom || "Room 101";
-    const building = entry.building || "Building A";
-    
-    // If patient is in general waiting, move them to clinic suite first
-    if (entry.currentLocation === 'general-waiting' || !entry.currentLocation) {
-      movePatientToLocation(entry.id, 'clinic-suite', building, room);
-      updatePatientStatus(entry.id, 'clinic-suite');
-    }
-    
-    // Start calling
-    startCallingPatient(entry.id, room);
-    
-    // Trigger "It's Your Turn" overlay for mobile
-    triggerItsYourTurn('Clinic Suite', building, room);
   };
 
   const handleSaveDetails = () => {
@@ -311,7 +285,7 @@ export function DoctorPatientDetail() {
             <div className="flex items-center gap-2 flex-wrap">
               {/* Call: Call -> Calling (15s) -> Called */}
               <Button
-                onClick={handleStartCalling}
+                onClick={() => startCallingPatient(entry.id, localRoom || entry.room || activeRoom || "Room 101")}
                 disabled={callDisabled || entry.callStatus !== "idle"}
                 className={cn("gap-2", entry.callStatus === "called" && "pointer-events-none")}
               >

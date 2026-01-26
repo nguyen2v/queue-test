@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { QueueEntry, Staff, ServiceType, Notification, Patient, Appointment, QueueStatus, Priority, Lane, VitalSigns, CallStatus, QueueLocation, QueueHistoryEntry, QUEUE_LOCATIONS } from '@/types/queue';
+import { QueueEntry, Staff, ServiceType, Notification, Patient, Appointment, QueueStatus, Priority, Lane, VitalSigns, CallStatus } from '@/types/queue';
 
 // Mock data generators
 const generateQueueNumber = () => `Q-${String(Math.floor(Math.random() * 9000) + 1000)}`;
@@ -46,16 +46,10 @@ const generateMockQueue = (): QueueEntry[] => {
     estimatedWaitMinutes: Math.floor(Math.random() * 30) + 5,
     assignedStaff: index % 3 === 0 ? mockStaff[index % mockStaff.length].name : undefined,
     location: index % 2 === 0 ? 'Building A' : 'Building B',
-    building: index % 2 === 0 ? 'Building A' : 'Building B',
     lane: statuses[Math.min(index, statuses.length - 1)] === 'in-service' ? lanes[index % lanes.length] : undefined,
     room: rooms[index % rooms.length],
     notes: index === 0 ? 'Patient requested wheelchair assistance' : undefined,
     callStatus: 'idle' as CallStatus,
-    currentLocation: 'general-waiting' as QueueLocation,
-    queueHistory: [
-      { location: 'general-waiting' as QueueLocation, locationName: 'General Waiting Room', status: 'current' as const, enteredAt: new Date(Date.now() - Math.random() * 3600000) }
-    ],
-    orderNumberInLocation: index + 1,
     vitals:
       index % 4 === 0
         ? {
@@ -112,8 +106,6 @@ interface QueueStore {
   currentPatient: Patient;
   appointments: Appointment[];
   activeQueueEntry: QueueEntry | null;
-  showItsYourTurn: boolean;
-  itsYourTurnDestination: { name: string; building?: string; room?: string } | null;
   
   // Actions
   setSelectedPatient: (patient: QueueEntry | null) => void;
@@ -130,18 +122,12 @@ interface QueueStore {
   getStaffForService: (serviceId: string) => Staff[];
 
   // Doctor actions
-  updatePatientDetails: (id: string, updates: Partial<Pick<QueueEntry, 'patientName' | 'notes' | 'room' | 'lane' | 'building'>> ) => void;
+  updatePatientDetails: (id: string, updates: Partial<Pick<QueueEntry, 'patientName' | 'notes' | 'room' | 'lane'>> ) => void;
   updatePatientVitals: (id: string, vitals: VitalSigns) => void;
   startCallingPatient: (id: string, room: string) => void;
   confirmCalledPatient: (id: string) => void;
   markInService: (id: string) => void;
   cancelPatient: (id: string) => void;
-
-  // Multi-location queue actions
-  movePatientToLocation: (id: string, location: QueueLocation, building?: string, room?: string) => void;
-  triggerItsYourTurn: (destination: string, building?: string, room?: string) => void;
-  dismissItsYourTurn: () => void;
-  transferToQueue: (id: string, targetQueue: QueueLocation, status?: QueueStatus) => void;
 }
 
 export const useQueueStore = create<QueueStore>((set, get) => ({
@@ -154,8 +140,6 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   currentPatient: mockPatient,
   appointments: mockAppointments,
   activeQueueEntry: null,
-  showItsYourTurn: false,
-  itsYourTurnDestination: null,
 
   setSelectedPatient: (patient) => set({ selectedPatient: patient }),
 
@@ -373,87 +357,5 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   getStaffForService: (serviceId) => {
     const { staff } = get();
     return staff.filter(s => s.assignedServices.includes(serviceId));
-  },
-
-  // Multi-location queue actions
-  movePatientToLocation: (id, location, building, room) => {
-    const locationInfo = QUEUE_LOCATIONS[location];
-    set((state) => {
-      const entry = state.queue.find(e => e.id === id);
-      if (!entry) return state;
-
-      // Update history - mark current as completed, add new as current
-      const updatedHistory: QueueHistoryEntry[] = (entry.queueHistory || []).map(h => 
-        h.status === 'current' ? { ...h, status: 'completed' as const, completedAt: new Date() } : h
-      );
-      updatedHistory.push({
-        location,
-        locationName: locationInfo?.name || location,
-        status: 'current',
-        enteredAt: new Date(),
-        room,
-        building,
-      });
-
-      // Calculate new order number in this location
-      const patientsInLocation = state.queue.filter(
-        p => p.currentLocation === location && p.id !== id
-      ).length;
-
-      return {
-        queue: state.queue.map((e) =>
-          e.id === id
-            ? {
-                ...e,
-                currentLocation: location,
-                building,
-                room,
-                queueHistory: updatedHistory,
-                orderNumberInLocation: patientsInLocation + 1,
-              }
-            : e
-        ),
-        activeQueueEntry: state.activeQueueEntry?.id === id
-          ? {
-              ...state.activeQueueEntry,
-              currentLocation: location,
-              building,
-              room,
-              queueHistory: updatedHistory,
-              orderNumberInLocation: patientsInLocation + 1,
-            }
-          : state.activeQueueEntry,
-      };
-    });
-  },
-
-  triggerItsYourTurn: (destination, building, room) => {
-    set({
-      showItsYourTurn: true,
-      itsYourTurnDestination: { name: destination, building, room },
-    });
-  },
-
-  dismissItsYourTurn: () => {
-    set({
-      showItsYourTurn: false,
-      itsYourTurnDestination: null,
-    });
-  },
-
-  transferToQueue: (id, targetQueue, status) => {
-    const { movePatientToLocation, updatePatientStatus, triggerItsYourTurn } = get();
-    const locationInfo = QUEUE_LOCATIONS[targetQueue];
-    
-    // Move to new location
-    movePatientToLocation(id, targetQueue);
-    
-    // Update status if provided
-    if (status) {
-      updatePatientStatus(id, status);
-    }
-    
-    // Trigger the "It's Your Turn" overlay for the patient
-    triggerItsYourTurn(locationInfo?.name || targetQueue);
   },
 }));

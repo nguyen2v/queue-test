@@ -1,42 +1,29 @@
 import { useQueueStore } from "@/store/queueStore";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Bell, BellOff, UserX, MapPin } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, MapPin, Bell, BellOff, UserX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { QueueHistoryCard } from "@/components/mobile/queue/QueueHistoryCard";
-import { ItsYourTurnScreen } from "@/components/mobile/queue/ItsYourTurnScreen";
-import { InServiceDisplay } from "@/components/mobile/queue/InServiceDisplay";
-import { QueueStatusCard } from "@/components/mobile/queue/QueueStatusCard";
-import { QueueTestButtons } from "@/components/mobile/queue/QueueTestButtons";
-import { QUEUE_LOCATIONS } from "@/types/queue";
 
 export function MobileQueueStatus() {
-  const { 
-    activeQueueEntry, 
-    leaveQueue, 
-    queue,
-    showItsYourTurn,
-    itsYourTurnDestination,
-    dismissItsYourTurn,
-  } = useQueueStore();
+  const { activeQueueEntry, leaveQueue, queue } = useQueueStore();
   const navigate = useNavigate();
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [stepAwayMode, setStepAwayMode] = useState(false);
 
-  // Calculate position in current location
+  // Calculate position
   const position = activeQueueEntry
     ? queue
-        .filter((p) => 
-          (p.status === 'waiting' || p.status === 'clinic-suite') && 
-          p.currentLocation === activeQueueEntry.currentLocation
-        )
+        .filter((p) => p.status === 'waiting' && p.serviceType === activeQueueEntry.serviceType)
         .sort((a, b) => new Date(a.checkInTime).getTime() - new Date(b.checkInTime).getTime())
         .findIndex((p) => p.id === activeQueueEntry.id) + 1
     : 0;
 
   const estimatedWait = position * 5; // 5 min per patient
 
+  // Mock position updates
   useEffect(() => {
     if (!activeQueueEntry) {
       navigate('/mobile');
@@ -59,216 +46,126 @@ export function MobileQueueStatus() {
     navigate('/mobile');
   };
 
-  const isInService = activeQueueEntry.status === 'in-service';
-  const currentLocation = activeQueueEntry.currentLocation || 'general-waiting';
-  const locationInfo = QUEUE_LOCATIONS[currentLocation];
-  const isRadiology = currentLocation === 'radiology';
-  const isInClinicSuite = activeQueueEntry.status === 'clinic-suite' || currentLocation === 'clinic-suite';
-
-  // Determine current test state
-  const getCurrentTestState = (): 'waiting' | 'your-turn' | 'in-service' | 'radiology' => {
-    if (showItsYourTurn) return 'your-turn';
-    if (isRadiology) return 'radiology';
-    if (isInService) return 'in-service';
-    return 'waiting';
-  };
-
-  // Determine status card state
-  const getStatusCardState = (): 'waiting' | 'your-turn' | 'in-service' | 'queue' => {
-    if (showItsYourTurn) return 'your-turn';
-    if (isInService) return 'in-service';
-    return 'waiting';
-  };
-
   return (
-    <div className="animate-fade-in min-h-screen bg-background">
+    <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
-      <div 
-        className="relative px-5 pt-12 pb-6"
-        style={{
-          background: isInService 
-            ? "linear-gradient(180deg, hsl(var(--success)) 0%, hsl(var(--success) / 0.8) 100%)"
-            : showItsYourTurn
-            ? "linear-gradient(180deg, hsl(var(--accent)) 0%, hsl(var(--accent) / 0.8) 100%)"
-            : "linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)"
-        }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={() => navigate('/mobile')}
-            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-          >
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </button>
-          <h1 className="text-white font-semibold">Queue Status</h1>
-          <div className="w-10" />
-        </div>
-
-        {/* Position Display */}
-        <div className="text-center text-white">
-          <p className="text-white/80 text-sm mb-2">Your position</p>
-          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm mx-auto flex items-center justify-center mb-3">
-            <span className="text-4xl font-bold">{isInService ? '—' : position}</span>
-          </div>
-          <p className="text-white/80 text-sm">in line</p>
-          
-          {!isInService && (
-            <>
-              <p className="text-white/80 text-sm mt-4">Estimated Wait</p>
-              <p className="text-2xl font-bold">~{estimatedWait} minutes</p>
-            </>
-          )}
-
-          {/* Current Location Badge */}
-          <div className="flex items-center justify-center gap-2 mt-4 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mx-auto w-fit">
-            <MapPin className="w-4 h-4" />
-            <span className="text-sm font-medium">{locationInfo?.name || 'General Waiting Room'}</span>
-          </div>
-        </div>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/mobile')}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <h1 className="font-heading font-semibold">Queue Status</h1>
+        <div className="w-10" />
       </div>
 
-      {/* Queue Number Card */}
-      <div className="px-5 -mt-4">
-        <Card className="p-4 rounded-2xl shadow-lg text-center">
-          <p className="text-xs text-muted-foreground mb-1">Your Queue Number</p>
-          <p className="text-3xl font-bold font-mono text-primary">
-            {activeQueueEntry.queueNumber}
+      {/* Position Display */}
+      <div className="flex flex-col items-center py-8">
+        <p className="text-muted-foreground text-sm mb-2">Your Position</p>
+        <motion.div
+          className="relative"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+        >
+          <div className="w-32 h-32 rounded-full gradient-teal flex items-center justify-center relative">
+            <span className="text-5xl font-heading font-bold text-primary-foreground">
+              {position}
+            </span>
+            <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-pulse-ring" />
+          </div>
+        </motion.div>
+        <p className="text-muted-foreground mt-3">in line</p>
+
+        {/* Estimated Wait */}
+        <div className="mt-6 text-center">
+          <p className="text-muted-foreground text-sm">Estimated Wait</p>
+          <p className="text-2xl font-heading font-bold text-foreground">
+            ~{estimatedWait} minutes
           </p>
+        </div>
+
+        {/* Service Info */}
+        <div className="mt-4 flex items-center gap-2 text-muted-foreground">
+          <MapPin className="w-4 h-4 text-primary" />
+          <span>{activeQueueEntry.serviceType}</span>
+        </div>
+        <p className="text-sm text-muted-foreground">{activeQueueEntry.location}</p>
+      </div>
+
+      {/* Progress */}
+      <Card className="p-4">
+        <p className="text-sm text-muted-foreground mb-3">Queue Progress</p>
+        <div className="flex items-center justify-center gap-2">
+          {[1, 2, 3, 4, 5].map((step) => (
+            <div
+              key={step}
+              className={`w-4 h-4 rounded-full ${
+                step <= 5 - position + 1 ? 'bg-primary' : 'bg-muted'
+              }`}
+            />
+          ))}
+        </div>
+        <p className="text-center text-sm text-muted-foreground mt-3">
+          {position <= 2 ? "Almost there!" : "You're getting closer!"}
+        </p>
+      </Card>
+
+      {/* Action Cards */}
+      <div className="space-y-3">
+        <Card
+          variant="interactive"
+          className="p-4"
+          onClick={() => setNotificationsOn(!notificationsOn)}
+        >
+          <div className="flex items-center gap-4">
+            <div className={`p-2.5 rounded-lg ${notificationsOn ? 'bg-primary/10' : 'bg-muted'}`}>
+              {notificationsOn ? (
+                <Bell className="w-5 h-5 text-primary" />
+              ) : (
+                <BellOff className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">Notifications {notificationsOn ? 'ON' : 'OFF'}</p>
+              <p className="text-sm text-muted-foreground">
+                {notificationsOn
+                  ? "We'll alert you when you're next"
+                  : "Enable to receive queue updates"}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          variant="interactive"
+          className="p-4"
+          onClick={() => setStepAwayMode(!stepAwayMode)}
+        >
+          <div className="flex items-center gap-4">
+            <div className={`p-2.5 rounded-lg ${stepAwayMode ? 'bg-warning/10' : 'bg-muted'}`}>
+              <UserX className={`w-5 h-5 ${stepAwayMode ? 'text-warning' : 'text-muted-foreground'}`} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium">Step Away Mode</p>
+                {stepAwayMode && <Badge variant="warning">Active</Badge>}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Leave the waiting area and we'll call you back
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* Content */}
-      <div className="px-5 pt-4 space-y-4 pb-8">
-        {/* Floating Status Card */}
-        <QueueStatusCard
-          currentLocation={currentLocation}
-          status={getStatusCardState()}
-          position={position}
-          estimatedWait={estimatedWait}
-          queueNumber={activeQueueEntry.queueNumber}
-          building={activeQueueEntry.building}
-          room={activeQueueEntry.room}
-          serviceName={activeQueueEntry.serviceType}
-        />
-
-        {/* It's Your Turn - Inline (non-blocking) */}
-        {showItsYourTurn && (
-          <ItsYourTurnScreen
-            destination={itsYourTurnDestination?.name || ''}
-            building={itsYourTurnDestination?.building}
-            room={itsYourTurnDestination?.room}
-            queueNumber={activeQueueEntry.queueNumber}
-            onDismiss={dismissItsYourTurn}
-          />
-        )}
-
-        {/* In Service Display */}
-        {isInService && !showItsYourTurn && (
-          <InServiceDisplay
-            serviceName={activeQueueEntry.serviceType}
-            building={activeQueueEntry.building}
-            room={activeQueueEntry.room}
-            staffName={activeQueueEntry.assignedStaff}
-          />
-        )}
-
-        {/* Queue History */}
-        {activeQueueEntry.queueHistory && activeQueueEntry.queueHistory.length > 0 && (
-          <QueueHistoryCard history={activeQueueEntry.queueHistory} />
-        )}
-
-        {/* Location Details Card */}
-        <Card className="p-4 rounded-2xl shadow-sm">
-          <p className="text-sm font-medium text-foreground mb-3">Current Location</p>
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <MapPin className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">{locationInfo?.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {activeQueueEntry.building && activeQueueEntry.building}
-                {activeQueueEntry.building && activeQueueEntry.room && ", "}
-                {activeQueueEntry.room}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Service: {activeQueueEntry.serviceType}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Action Cards */}
-        <div className="space-y-3">
-          <Card
-            className="p-4 rounded-2xl cursor-pointer transition-all hover:shadow-md"
-            onClick={() => setNotificationsOn(!notificationsOn)}
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                notificationsOn ? 'bg-primary/10' : 'bg-muted'
-              }`}>
-                {notificationsOn ? (
-                  <Bell className="w-5 h-5 text-primary" />
-                ) : (
-                  <BellOff className="w-5 h-5 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">Notifications {notificationsOn ? 'ON' : 'OFF'}</p>
-                <p className="text-sm text-muted-foreground">
-                  {notificationsOn
-                    ? "We'll alert you when it's your turn"
-                    : "Enable to receive queue updates"}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {!isInService && (
-            <Card
-              className="p-4 rounded-2xl cursor-pointer transition-all hover:shadow-md"
-              onClick={() => setStepAwayMode(!stepAwayMode)}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  stepAwayMode ? 'bg-warning/10' : 'bg-muted'
-                }`}>
-                  <UserX className={`w-5 h-5 ${stepAwayMode ? 'text-warning' : 'text-muted-foreground'}`} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">Step Away Mode</p>
-                    {stepAwayMode && (
-                      <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full font-medium">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Leave the waiting area, we'll call you back
-                  </p>
-                </div>
-              </div>
-            </Card>
-          )}
-        </div>
-
-        {/* Test Buttons */}
-        <QueueTestButtons currentState={getCurrentTestState()} />
-
-        {/* Leave Queue */}
-        {!isInService && (
-          <div className="pt-4">
-            <Button
-              variant="ghost"
-              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
-              onClick={handleLeaveQueue}
-            >
-              Leave Queue
-            </Button>
-          </div>
-        )}
+      {/* Leave Queue */}
+      <div className="pt-4">
+        <Button
+          variant="ghost"
+          className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleLeaveQueue}
+        >
+          Leave Queue
+        </Button>
       </div>
     </div>
   );
